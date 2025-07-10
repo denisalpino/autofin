@@ -1,0 +1,6 @@
+.venv
+.env
+catboost_info
+data
+notebooks
+indicators
