@@ -1,6 +1,22 @@
-.venv
-.env
 catboost_info
 data
 notebooks
 indicators
+
+# Игнорировать виртуальное окружение
+.venv/
+venv/
+*.env
+
+# Byte-compiled / optimized / DLL files
+**/__pycache__/
+**/*.py[cod]
+
+# Logs
+logs/
+*.log
+
+# IDE files
+.vscode/
+.idea/
+.ipynb_checkpoints
