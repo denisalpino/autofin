@@ -2,13 +2,27 @@ import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
 import pandas_ta as indicators
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
+from mlxtend.evaluate import GroupTimeSeriesSplit
 
 import os
 import joblib
 from dataclasses import dataclass
-from typing import Optional, Sequence, Literal
+from fractions import Fraction
+from typing import Optional, Sequence, Literal, Set
 
+scaling = {
+    "method": "minmax",
+    "non_scalable_cols": {"ticker"},
+    "include_target": True
+}
+NON_SCALABLE_COLS = {"target", "ticker"}
+
+SCALERS = {
+    "minmax": MinMaxScaler,
+    "standard": StandardScaler,
+    "robust": RobustScaler
+}
 
 DEFAULT_FUTURES_CONFIG = {
     "base_columns": {
@@ -115,116 +129,160 @@ def preprocessing_pipe(
         loader_config: dict = {},
         task: Literal["direction", "returns"] = "returns",
         features_config: dict = DEFAULT_FUTURES_CONFIG,
-        scaling_method: Literal["minmax", "standard"] = "standard",
-        split: Sequence = (75, 15, 10),
+        split: Sequence[int] = (75, 15, 10),
+        use_cv: bool = True,
+        winsorize_percent: Optional[int] = 1,
+        scaling_method: Optional[Literal["minmax", "standard", "robust"]] = None,
+        non_scalable_cols: Set[str] = NON_SCALABLE_COLS,
+        include_target: bool = True,
+        save_features_dir: Optional[str] = None,
+        save_ready_data_dir: Optional[str] = None,
         return_raw_data: bool = False,
         return_features: bool = False,
-        save_features_dir: Optional[str] = None,
-        save_ready_data_dir: Optional[str] = None
 ) -> Dataset:
     """
     High level function for preprocessing pipeline configuration.
     """
-    # Load data from single file or directory
-    dfs = load_data(file, dir, loader_config)
+    merged_df = pd.DataFrame()
 
-    merged_df = []
-    merged_features = []
-    merged_train = []
-    merged_val = []
-    merged_test = []
+    if use_cv:
+        train_for_cv = pd.DataFrame()
+        test_for_cv  = pd.DataFrame()
+    else:
+        merged_train = pd.DataFrame()
+        merged_val   = pd.DataFrame()
+        merged_test  = pd.DataFrame()
     scalers = {}
 
     DEFAULT_FUTURES_CONFIG.update(features_config)
+    features_config = DEFAULT_FUTURES_CONFIG
+
+    NON_SCALABLE_COLS.update(non_scalable_cols)
+    non_scalable_cols = NON_SCALABLE_COLS
+
+    # Select scaler for target and features if scaling is needed
+    if scaling_method and use_cv:
+        feature_scaler = SCALERS[scaling_method]()
+        target_scaler  = SCALERS[scaling_method]()
+
+    # Load data from single file or directory
+    dfs = load_data(file, dir, loader_config)
 
     for df in dfs:
         # Converting timestamps from string to the DateTime object and then sorting
-        timestamps_col = features_config["timestamps"]["column"]
+        timestamps_col     = features_config["timestamps"]["column"]
         df[timestamps_col] = pd.to_datetime(df[timestamps_col])
         df.sort_values(by=timestamps_col, ignore_index=True, inplace=True)
 
         # Create features
-        features = create_features(df, features_config=features_config)
-        features["ticker"] = df["ticker"].copy()
+        features           = create_features(df, features_config=features_config)
+        features["ticker"] = df["ticker"].astype("category")
 
-        # TODO:
         # Create target
         if task == "direction":
-            target = create_direction_target(df, price_col_name="close")
-            features["target"] = target
-            df["target"] = target
+            features["target"] = create_direction_target(df, price_col_name="close")
+            df["target"]       = features["target"]
         elif task == "returns":
-            target = create_price_target(df, price_col_name="close")
-            features["target_returns"] = target
-            df["target_returns"] = target
+            features["target"] = create_price_target(df, price_col_name="close")
+            df["target"]       = features["target"]
         else:
-            raise ValueError("Unknown type of task. Choose one of the next tasks: 'direction', 'price' or 'gbm'")
+            raise ValueError("Unknown type of task. Choose one of the next tasks: 'direction' or 'returns'")
 
         # Drop NA values
-        mask = ~features.isna().any(axis=1).values # type: ignore
-        features = features[mask]
-        df = df[mask]
+        mask         = ~features.isna().any(axis=1).values # type: ignore
+        features, df = features[mask], df[mask]
 
+        # Merge full df containing features with all tickers df's
+        df              = pd.concat([df, features], axis=1)
+        merged_df       = pd.concat([merged_df, df], axis=0, ignore_index=True)
+        merged_features = pd.concat([merged_features, features], axis=0, ignore_index=True)
+
+        # TODO: There is no alignment applies if tickers have unequal timings
         # Split dataset to the train / validation / test samples
-        train_size, val_size, test_size = [i / 100 for i in split]
+        train, val, test = train_val_test_split(features, split)
 
-        num_trainable = int(len(features) * train_size)
-        num_validatable = int((len(features) - num_trainable) * (val_size / (val_size + test_size)))
+        if use_cv:
+            train_for_cv = pd.concat([train_for_cv, train, val], axis=0)
+            test_for_cv  = pd.concat([test_for_cv, test], axis=0)
+        else:
+            merged_train = pd.concat([merged_train, train], axis=0, ignore_index=True)
+            merged_val   = pd.concat([merged_val, val], axis=0, ignore_index=True)
+            merged_test  = pd.concat([merged_test, test], axis=0, ignore_index=True)
 
-        trainable = features.iloc[:num_trainable]
-        validatable = features.iloc[num_trainable:num_trainable + num_validatable]
-        testable = features.iloc[num_trainable + num_validatable:]
+    if not use_cv and scaling_method:
+        # Select scalers
+        feature_scaler = SCALERS[scaling_method]()
+        target_scaler  = SCALERS[scaling_method]()
 
         # Select scalable columns
-        # non_scalable = {"+DI", "-DI", "ADX", "BBP", "BBB", "RSI", "MACD", "returns", "target", "ticker"}
-        non_scalable = {"ticker", "target"}
-        others = []
+        others   = []
         scalable = []
-        for col in features.columns: # type: ignore
-            condition_starts = not any([col.startswith(nonsc) for nonsc in non_scalable])
+        for col in features.columns:
+            condition_starts = not any([col.startswith(nonsc) for nonsc in non_scalable_cols])
             condition_ends = not (col.endswith("_cos") or col.endswith("_sin"))
-            if condition_starts and condition_ends:
-                scalable.append(col)
-            else:
-                others.append(col)
+            (others, scalable)[condition_starts and condition_ends].append(col)
 
-        # Select scaler
-        if scaling_method == "standard":
-            scaler = StandardScaler()
-            target_scaler = StandardScaler()
-        elif scaling_method == "minmax":
-            scaler = MinMaxScaler()
-            target_scaler = MinMaxScaler()
-        else:
-            raise ValueError("Unknown `scaling_method`, please select from 'minmax' and 'standard'.")
-
-        for ind, (sample, merged) in enumerate(zip(
-            [trainable, validatable, testable],
-            [merged_train, merged_val, merged_test]
-        )):
-            # Scaling
+        # Scale features and target (optionally)
+        for ind, merged_sample in enumerate([merged_train, merged_val, merged_test]):
             if ind == 0:
-                # Fit scaler on trainable data
-                sample.loc[:, scalable] = scaler.fit_transform(sample[scalable])
-                if task == "returns":
-                    sample["target_returns"] = target_scaler.fit_transform(sample["target_returns"].values.reshape(-1, 1)).flatten()
-                    scalers[sample.ticker.iloc[0]] = dict(features=scaler, target=target_scaler)
-            else:
-                sample.loc[:, scalable] = scaler.transform(sample[scalable])
-                if task == "returns":
-                    sample["target_returns"] = target_scaler.transform(sample["target_returns"].values.reshape(-1, 1)).flatten()
-            merged.append(sample)
-        merged_df.append(df)
-        merged_features.append(features)
+                # Fit scalers only on train features
+                feature_scaler = feature_scaler.fit(merged_sample[scalable])
+                scalers["features"] = feature_scaler
+                # Fit scalers only on train features target (optionally)
+                if include_target and task != "direction":
+                    target_array  = merged_sample["target"].values.reshape(-1, 1)
+                    target_scaler = target_scaler.fit(target_array)
+                elif include_target:
+                    raise ValueError("Scaling target detected during 'direction' task. Turn of target scaling or change type of task.")
+            # Scale validation and train samples
+            merged_sample.loc[:, scalable] = feature_scaler.transform(merged_sample[scalable])
+            if include_target:
+                target_array            = merged_sample["target"].values.reshape(-1, 1)
+                merged_sample["target"] = target_scaler.transform(target_array).flatten()
+    elif use_cv:
+        # Calculate ratio of training and validating samples for cross-validation
+        train_size, val_size, _ = split
 
-    merged_df = pd.concat(merged_df, axis=0, ignore_index=True)
-    merged_features = pd.concat(merged_features, axis=0, ignore_index=True)
-    merged_train = pd.concat(merged_train, axis=0, ignore_index=True)
-    merged_val = pd.concat(merged_val, axis=0, ignore_index=True)
-    merged_test = pd.concat(merged_test, axis=0, ignore_index=True)
+        ratio = train_size / val_size
+        frac  = Fraction(ratio).limit_denominator(100)
+        train_size, val_size = frac.numerator, frac.denominator
 
-    for dataframe in (merged_df, merged_features, merged_train, merged_val, merged_test):
-        dataframe["ticker"] = pd.Categorical(dataframe["ticker"])
+        # Prepare features, target and groups
+        X = train_for_cv.drop(columns=["target"])
+        y = train_for_cv["target"]
+        groups = train_for_cv["ticker"]
+
+        gtscv = GroupTimeSeriesSplit(val_size, train_size=train_size, n_splits=5)
+
+        for fold, (train_idx, val_idx) in enumerate(gtscv.split(X, y, groups=groups)):
+            # Sampling by inexies
+            X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
+            y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+
+            # TODO: Think about winsorize lags of log-returns too
+            # 2) Winsorize target by quantiles on train if needed
+            if winsorize_percent:
+                winsorize_percent: float = winsorize_percent / 200
+                low, high    = np.quantile(y_train, [winsorize_percent, 1 - winsorize_percent])
+                y_train = np.clip(y_train, low, high)
+                y_val   = np.clip(y_val,   low, high)
+
+            # 3) Фитим StandardScaler только на X_train и y_train_clip
+            numeric_feats = [c for c in X.columns if c != "ticker"]
+            feat_scaler   = StandardScaler().fit(X_train[numeric_feats])
+            targ_scaler   = StandardScaler().fit(y_train.values.reshape(-1,1))
+
+            # 4) Трансформируем train и val
+            X_train_scaled = X_train.copy()
+            X_val_scaled   = X_val.copy()
+            X_train_scaled[numeric_feats] = feat_scaler.transform(X_train[numeric_feats])
+            X_val_scaled[numeric_feats]   = feat_scaler.transform(X_val[numeric_feats])
+
+            y_train_scaled = targ_scaler.transform(y_train.values.reshape(-1,1)).ravel()
+            y_val_scaled   = targ_scaler.transform(y_val.values.reshape(-1,1)).ravel()
+
+
+
 
     dataset = Dataset(
         raw=merged_df if return_raw_data else None, # type: ignore
@@ -235,6 +293,28 @@ def preprocessing_pipe(
         scalers=scalers
     )
     return dataset
+
+def train_val_test_split(
+        features: pd.DataFrame,
+        split: Sequence[int]
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    # Validate params
+    if (curr_sum := sum(split)) != 1:
+        raise ValueError(f"All elements of the `split` sequence must summing to 1, when current sum is {curr_sum}.")
+
+    # Convert to shares
+    train_size, val_size, test_size = [i / 100 for i in split]
+
+    # Calaculate number of training and validating samples
+    num_trainable = int(len(features) * train_size)
+    num_validatable = int((len(features) - num_trainable) * (val_size / (val_size + test_size)))
+
+    # Make slices for each set
+    trainable = features.iloc[:num_trainable]
+    validatable = features.iloc[num_trainable:num_trainable + num_validatable]
+    testable = features.iloc[num_trainable + num_validatable:]
+
+    return trainable, validatable, testable
 
 
 def load_data(
@@ -307,8 +387,7 @@ def create_price_target(
         price_col_name: str
 ) -> pd.Series:
     price = df[price_col_name]
-    target = price.pct_change(1).shift(-1) # type: ignore
-    target.name = "target_returns"
+    target = np.log(price / price.shift(1)).rename("target") # type: ignore
     return target
 
 
@@ -627,7 +706,6 @@ def get_lagging_features(
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler, RobustScaler
-from sklearn.model_selection import GroupTimeSeriesSplit
 
 class PipelineConfig:
     n_splits: int = 5
