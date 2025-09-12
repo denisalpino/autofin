@@ -1,7 +1,11 @@
 import plotly.graph_objects as go
 
 
-def show_price_line(df, col: str = "close", dt_col: str = "timestamp"):
+def show_price_line(
+    df,
+    col: str = "close",
+    dt_col: str = "timestamp"
+):
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=df[dt_col], y=df[col],
@@ -25,7 +29,11 @@ def show_price_line(df, col: str = "close", dt_col: str = "timestamp"):
 
     return fig
 
-def show_candlestick(df, OHLC_cols: list[str] = ["open", "high", "low", "close"], dt_col: str = "timestamp"):
+def show_candlestick(
+    df,
+    OHLC_cols: list[str] = ["open", "high", "low", "close"],
+    dt_col: str = "timestamp"
+):
     open, high, low, close = OHLC_cols
     fig = go.Figure(
         data=[
