@@ -6,10 +6,11 @@ from typing import Literal, Optional, Tuple, List, Union
 
 class GroupTimeSeriesSplit:
     def __init__(
-            self,
-            val_folds: int = 1, test_folds: int = 0,
-            interval: str = "7d",
-            window: Literal["expanding", "rolling"] = "expanding"
+        self,
+        val_folds: int = 1,
+        test_folds: int = 0,
+        interval: str = "7d",
+        window: Literal["expanding", "rolling"] = "expanding"
     ) -> None:
         """
         interval : str
@@ -24,19 +25,18 @@ class GroupTimeSeriesSplit:
         window : 'expanding' or 'rolling'
             Type of window.
         """
-        self._val_folds   = val_folds
-        self._test_folds  = test_folds
-        self._offset      = self._parse_interval(interval)
-        self._window      = window
+        self._val_folds  = val_folds
+        self._test_folds = test_folds
+        self._offset     = self._parse_interval(interval)
+        self._window     = window
 
     def _parse_interval(self, s: str):
         n, unit = int(s[:-1]), s[-1]
         if unit == 'm': return pd.Timedelta(minutes=n)
         if unit == 'h': return pd.Timedelta(hours=n)
-        if unit == 'd': return pd.Timedelta(days=n)
+        if unit == 'd': return pd.tseries.offsets.BDay(n)
         if unit == 'M': return pd.DateOffset(months=n)
         raise ValueError("Unsupported unit, use [m,h,d,M].")
-
 
     def get_timestamp_split(self, timestamps: pd.Series, steps: int) -> pd.Timestamp:
         """
@@ -70,12 +70,11 @@ class GroupTimeSeriesSplit:
 
         return start_third
 
-
     def _get_train_test_idx(
-            self,
-            df: pd.DataFrame,
-            start: pd.Timestamp,
-            steps: int
+        self,
+        df: pd.DataFrame,
+        start: pd.Timestamp,
+        steps: int
     ):
         train_test = []
 
@@ -84,23 +83,23 @@ class GroupTimeSeriesSplit:
             ev = sv + self._offset
 
             if self._window == "expanding":
-                train_mask = df['ts'] < sv
-            else:  # rolling
-                train_mask = (df['ts'] < sv) & (df['ts'] >= sv - self._offset)
+                train_mask = df['ts'] <= sv
+            else: # rolling
+                train_mask = (df['ts'] <= sv) & (df['ts'] > sv - self._offset)
 
-            test_mask = (df['ts'] >= sv) & (df['ts'] < ev)
+            test_mask = (df['ts'] > sv) & (df['ts'] <= ev)
             train_idx = df.loc[train_mask, '_idx'].tolist()
-            test_idx  = df.loc[test_mask,   '_idx'].tolist()
+            test_idx  = df.loc[test_mask, '_idx'].tolist()
             train_test.append([train_idx, test_idx])
 
         return train_test
 
-
     def split(
-            self,
-            X: Optional[pd.DataFrame], y: Optional[pd.Series],
-            groups: pd.Series,
-            timestamps: pd.Series
+        self,
+        X: Optional[pd.DataFrame],
+        y: Optional[pd.Series],
+        groups: pd.Series,
+        timestamps: pd.Series
     ) -> Tuple[Union[Tuple[List[int],List[int]],
                     Tuple[List[int],List[int],List[int]]], ...]:
         """
@@ -162,8 +161,13 @@ class GroupTimeSeriesSplit:
         # return as a tuple of tuples
         return tuple(train_val), tuple(train_test)
 
-
-    def plot_split(self, y: pd.Series, groups: pd.Series, group_name: str, timestamps: pd.Series, y_title):
+    def plot_split(
+        self, y: pd.Series,
+        groups: pd.Series,
+        group_name: str,
+        timestamps: pd.Series,
+        y_title: str
+    ):
         y_group          = y[groups == group_name]
         timestamps_group = timestamps[groups == group_name]
 
