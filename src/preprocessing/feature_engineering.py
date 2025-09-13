@@ -367,10 +367,10 @@ def get_lagging_features(
     ser: pd.Series,
     max_lag: int
 ) -> pd.DataFrame:
-    if max_lag < 2:
-        raise ValueError("Parameter `max_lag` must be at least 2.")
+    if max_lag < 1:
+        raise ValueError("Parameter `max_lag` must be at least 1.")
     lagging_features = pd.DataFrame()
-    for lag in range(1, max_lag):
+    for lag in range(1, max_lag + 1):
         lagging_features[f"{ser.name}_lag{lag}"] = ser.shift(lag)
     return lagging_features
 
