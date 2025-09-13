@@ -11,9 +11,10 @@ def create_features(
     features_config: dict
 ) -> pd.DataFrame:
     """
-    Creates feature matrix based on configuration dictionary.
+        Creates feature matrix based on configuration dictionary.
 
-    Args:
+        Parameters
+        ---
         df: Input DataFrame with raw financial data
         features_config: Configuration dictionary specifying which features to create
             - base_columns: Dictionary mapping standard names to actual column names
@@ -23,10 +24,12 @@ def create_features(
             - indicators: Dictionary configuring technical indicator calculations
             - lags: Dictionary specifying lag features to create
 
-    Returns:
+        Returns
+        ---
         pd.DataFrame: DataFrame with engineered features
 
-    Raises:
+        Raises
+        ---
         KeyError: If required base_columns are missing from features_config
         TypeError: If indicators configuration is not a dictionary
         ValueError: If time_features are requested but no parameters are specified
@@ -108,20 +111,22 @@ def calculate_indicator(
     base_columns: dict
 ) -> pd.DataFrame | pd.Series:
     """
-    Calculate an indicator based on the provided configuration.
+        Calculate an indicator based on the provided configuration.
 
-    Args:
+        Parameters
+        ---
         df: Input DataFrame with OHLC price data
         name: Name of the indicator to calculate
         config: Configuration dictionary for the indicator
         base_columns: Dictionary mapping standard column names to actual column names
 
-    Returns
-    ---
-    pd.DataFrame | pd.Series:
-        Calculated indicator values
+        Returns
+        ---
+        pd.DataFrame | pd.Series:
+            Calculated indicator values
 
-    Raises:
+        Raises
+        ---
         ValueError: If unknown indicator name is provided
         KeyError: If required columns are missing from base_columns
     """
@@ -341,9 +346,10 @@ def create_time_features(
     month: bool = False
 ) -> pd.DataFrame:
     """
-    Calculates cyclic time-features based on `cos` and `sin` functions.
+        Calculates cyclic time-features based on `cos` and `sin` functions.
 
-    Args:
+        Parameters
+        ---
         timestamps: Series containing datetime values
         minute: Whether to include minute-based features
         hour: Whether to include hour-based features
@@ -351,10 +357,12 @@ def create_time_features(
         day_of_week: Whether to include day-of-week features
         month: Whether to include month features
 
-    Returns:
+        Returns
+        ---
         pd.DataFrame: DataFrame with cyclic time features encoded as sin/cos pairs
 
-    Raises:
+        Raises
+        ---
         ValueError: If no time features are specified for encoding
     """
     time_features = pd.DataFrame()
@@ -427,14 +435,16 @@ def encode_cyclic(
     max_val: int | NDArray
 ) -> pd.DataFrame:
     """
-    Encode cyclic features using sin and cos transformations.
+        Encode cyclic features using sin and cos transformations.
 
-    Args:
+        Parameters
+        ---
         values: Array of values to encode
         col_name: Base name for the output columns
         max_val: Maximum value for the cyclic feature (used for normalization)
 
-    Returns:
+        Returns
+        ---
         pd.DataFrame: DataFrame with sin and cos encoded features
     """
     encoded_features = pd.DataFrame()
@@ -450,9 +460,10 @@ def calculate_returns(
     log=False
 ) -> pd.Series:
     """
-    Calculate price returns using specified method.
+        Calculate price returns using specified method.
 
-    Args:
+        Parameters
+        ---
         price: Series of price values
         period: Number of periods to calculate returns over
         method: Method for calculating returns:
@@ -461,10 +472,12 @@ def calculate_returns(
             - "price_change": absolute price difference
         log: Whether to apply logarithmic transformation (only for momentum method)
 
-    Returns:
+        Returns
+        ---
         pd.Series: Series of calculated returns
 
-    Raises:
+        Raises
+        ---
         ValueError: If invalid method is provided or log is used with unsupported method
     """
     # Momentum method: simple price ratio
@@ -490,16 +503,19 @@ def get_lagging_features(
     max_lag: int
 ) -> pd.DataFrame:
     """
-    Create lagged versions of a time series.
+        Create lagged versions of a time series.
 
-    Args:
+        Parameters
+        ---
         ser: Input time series
         max_lag: Maximum number of lags to create (will create lags 1 to max_lag)
 
-    Returns:
+        Returns
+        ---
         pd.DataFrame: DataFrame with lagged features
 
-    Raises:
+        Raises
+        ---
         ValueError: If max_lag is less than 1
     """
     # Validate input parameter
@@ -520,14 +536,16 @@ def create_direction_target(
     min_step: int = 1,
 ) -> pd.Series:
     """
-    Create directional target variable indicating price movement direction.
+        Create directional target variable indicating price movement direction.
 
-    Args:
+        Parameters
+        ---
         df: DataFrame containing price data
         price_col_name: Name of the price column to use
         min_step: Minimum number of periods for a price movement to be considered significant
 
-    Returns:
+        Returns
+        ---
         pd.Series: Binary series indicating price direction (1 for up, 0 for down)
     """
     s = df[price_col_name]
@@ -550,13 +568,15 @@ def create_price_target(
     price_col_name: str
 ) -> pd.Series:
     """
-    Create price-based target variable representing percentage change.
+        Create price-based target variable representing percentage change.
 
-    Args:
+        Parameters
+        ---
         df: DataFrame containing price data
         price_col_name: Name of the price column to use
 
-    Returns:
+        Returns
+        ---
         pd.Series: Series of percentage price changes
     """
     price = df[price_col_name]
