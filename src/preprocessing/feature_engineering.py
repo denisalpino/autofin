@@ -32,28 +32,34 @@ def create_features(
         ValueError: If time_features are requested but no parameters are specified
     """
     df = df.copy()
+    # Store original index to ensure proper alignment at the end
     original_index = df.index
+    # Extract base column mappings with default empty dict
     base_columns = features_config.get("base_columns", {})
     feature_frames = []
 
-    # Include OHLC features if needed
+    # Include OHLC features if needed - these are the raw price values
     if ohlc := features_config.get("ohlc"):
         for price, include in ohlc.items():
             if include:
+                # Get actual column name from base_columns mapping
                 col_name = base_columns[price]
+                # Add the price column as a feature
                 feature_frames.append(df[col_name].copy())
 
-    # Time-based feature engineering
+    # Time-based feature engineering - creates cyclic time features
     if tf_cfg := features_config.get("time_features"):
         col = base_columns["timestamps"]
+        # Create boolean list of which time features to generate
         bool_params = [
             param in tf_cfg
             for param in ["minute", "hour", "day", "day_of_week", "month"]
         ]
+        # Generate time features using the timestamp column
         time_feats = create_time_features(df[col], *bool_params)
         feature_frames.append(time_feats)
 
-    # Returns feature engineering
+    # Returns feature engineering - calculates price returns
     if ret_cfg := features_config.get("returns"):
         ret = calculate_returns(
             df[ret_cfg["column"]],
@@ -61,30 +67,32 @@ def create_features(
             method=ret_cfg["method"],
             log=ret_cfg["log"]
         )
+        # Name the returns series for easier identification
         ret.name = "returns"
         feature_frames.append(ret)
 
-    # Indicator-based feature engineering
+    # Indicator-based feature engineering - calculates technical indicators
     if ind_cfg := features_config.get("indicators"):
         if isinstance(ind_cfg, dict):
+            # Calculate all configured indicators
             ind_frames = [
                 calculate_indicator(df, name, cfg, base_columns)
                 for name, cfg in ind_cfg.items()
             ]
+            # Concatenate all indicator results
             feature_frames.append(pd.concat(ind_frames, axis=1))
         else:
             raise TypeError(f"Unsupported indicator configuration type: {type(ind_cfg)}")
 
-    # Concatenate features built so far
+    # Filter out any empty DataFrames before concatenation
     feature_frames = [frame for frame in feature_frames if not frame.empty]
+    # Concatenate all features, ensuring alignment with original index
     if feature_frames:
         features = pd.concat(feature_frames, axis=1).reindex(df.index)
     else:
         features = pd.DataFrame(index=df.index)
 
-    features = pd.concat(feature_frames, axis=1)
-
-    # Lagging feature engineering
+    # Lagging feature engineering - creates lagged versions of features
     if lags := features_config.get("lags"):
         for col, lag in lags.items():
             lag_feats = get_lagging_features(features[col], max_lag=lag)
@@ -117,10 +125,12 @@ def calculate_indicator(
         ValueError: If unknown indicator name is provided
         KeyError: If required columns are missing from base_columns
     """
+    # Extract OHLC columns using base_columns mapping
+    # This ensures flexibility in column naming across different datasets
     open, high = df[base_columns["open"]], df[base_columns["high"]]
     low, close = df[base_columns["low"]], df[base_columns["close"]]
 
-    # Average True Range
+    # Average True Range - measures market volatility
     if name.startswith("ATR"):
         atr = indicators.atr(
             high,
@@ -131,13 +141,14 @@ def calculate_indicator(
         )
         return atr  # type: ignore
 
-    # Relative Strength Index
+    # Relative Strength Index - momentum oscillator
     elif name.startswith("RSI"):
+        # Use specified price column (e.g., close, open, etc.)
         prices = df[config["price"]]
         rsi = indicators.rsi(prices, length=config["window"], scalar=1)
         return rsi  # type: ignore
 
-    # Bollinger Bands
+    # Bollinger Bands - volatility bands around a moving average
     elif name.startswith("BBP"):
         bb = indicators.bbands(
             close,
@@ -149,6 +160,7 @@ def calculate_indicator(
         return bb[config["output"]]  # type: ignore
 
     # Moving Average Convergence Divergence (including signal and histogram)
+    # Trend-following momentum indicator
     elif name.startswith("MACD"):
         prices = df[config["price"]]
         macd = indicators.macd(
@@ -160,7 +172,7 @@ def calculate_indicator(
         macd.columns = ["MACD", "MACD_Signal", "MACD_Hist"]  # type: ignore
         return macd[config["output"]]  # type: ignore
 
-    # Average Directional Index
+    # Average Directional Index - measures trend strength
     elif name.startswith("ADX"):
         adx = indicators.adx(
             high, low, close,
@@ -171,7 +183,7 @@ def calculate_indicator(
         adx.columns = ["ADX", "+DI", "-DI"]  # type: ignore
         return adx[config["output"]]  # type: ignore
 
-    # Donchain Channels
+    # Donchian Channels - volatility indicator showing highest high and lowest low
     elif name.startswith("DC"):
         dc = indicators.donchian(
             high,
@@ -180,22 +192,25 @@ def calculate_indicator(
             upper_length=config["window"])
         dcr = pd.DataFrame()
 
+        # Convert to DataFrame with proper column names
         for col, ser in dc.items():  # type: ignore
             dcr[col] = ser
 
         dcr.columns = ["LowDC", "MidDC", "UpDC"]
         return dcr[config["output"]]
 
-    # Elder Ray Power
+    # Elder Ray Power - measures buying and selling pressure
     elif name.startswith("ERP"):
         ema = indicators.ema(close, length=config["window"])
+        # Bull power measures the ability to push prices above EMA
         bears_power = high - ema
+        # Bear power measures the ability to push prices below EMA
         bulls_power = low - ema
         bears_power.name = "BePo"
         bulls_power.name = "BuPo"
         return pd.concat([bears_power, bulls_power], axis=1)
 
-    # Mass Index (MI)
+    # Mass Index (MI) - identifies trend reversals by measuring volatility
     elif name.startswith("MI"):
         mi = indicators.massi(
             df.high,
@@ -205,24 +220,24 @@ def calculate_indicator(
         )
         return mi  # type: ignore
 
-    # Moving Average (including few kinds)
+    # Moving Average (including few kinds) - smooths price data
     elif name.startswith("MA_"):
         prices = df[config["price"]]
         ma = indicators.ma(config["kind"], prices, length=config["window"])
         return ma
 
-    # Volatility Ratio
+    # Volatility Ratio - measures intraday volatility
     elif name == "volatility_ratio":
         vr = high / low - 1
         vr.name = "volatility_ratio"
         return vr
 
-    # Candle Strength
+    # Candle Strength - measures how strong a candle is relative to its range
     elif name == "candle_strength":
         cs = ((close - open) / (high - low + 1e-5)).rename("candle_strength")
         return cs
 
-    # Absolute Body Differance
+    # Absolute Body Difference - measures the absolute size of the candle body
     elif name == "body":
         body = (open - close).abs().rename("body")
         return body
@@ -244,20 +259,20 @@ def calculate_indicator(
         cc_diff = (close - close.shift(1)).rename("cc_diff")
         return cc_diff
 
-    # Ratio of Close - EMA and EMA
+    # Ratio of Close - EMA and EMA - shows deviation from moving average
     elif name.startswith("price_to_ema"):
         ma = indicators.ma(config["kind"], close, length=config["window"])
         price_to_ema = ((close - ma) / ma).rename(f"price_to_ema_{config['window']}")
         return price_to_ema
 
-    # Z-Score close
+    # Z-Score close - shows how many standard deviations close is from mean
     elif name.startswith("ZScore_"):
         ma_rolling = close.rolling(config["window"]).mean()
         std_rolling = close.rolling(config["window"]).std()
         zscore = ((close - ma_rolling) / std_rolling).rename(f"ZScore_{config['window']}")
         return zscore
 
-    # Keltner Channels
+    # Keltner Channels - volatility-based envelopes around moving average
     elif name.startswith("KC"):
         kc = indicators.kc(high, low, close, length=config["window"], scalar=config["scalar"])
         kcr = pd.DataFrame()
@@ -268,12 +283,13 @@ def calculate_indicator(
         kcr.columns = ["LowKC", "MidKC", "UpKC"]
         return kcr[config["output"]]
 
-    # Momentum with window
+    # Momentum with window - measures the rate of price change
     elif name.startswith("MOM_"):
         mom = close.diff(config["window"]).rename(f"MOM_{config['window']}")
         return mom
 
-    # Skew of absolute returns per rolling window
+    # Skew of absolute returns per rolling window - measures return
+    # distribution asymmetry
     elif name.startswith("ret_skew_"):
         ret_skew = (
             (close - close.shift())
@@ -283,7 +299,8 @@ def calculate_indicator(
         )
         return ret_skew
 
-    # Kurtosis of absolute returns per rolling window
+    # Kurtosis of absolute returns per rolling window - measures tail
+    # heaviness of return distribution
     elif name.startswith("ret_kurt_"):
         ret_kurt = (
             (close - close.shift())
@@ -293,7 +310,7 @@ def calculate_indicator(
         )
         return ret_kurt
 
-    # Standart deviation of absolute returns per rolling window
+    # Standart deviation of absolute returns per rolling window - measures volatility
     elif name.startswith("ret_std_"):
         ret_std = (
             (close - close.shift())
@@ -303,7 +320,7 @@ def calculate_indicator(
         )
         return ret_std
 
-    # Mean of absolute returns per rolling window
+    # Mean of absolute returns per rolling window - measures average return
     elif name.startswith("ret_mean_"):
         ret_mean = (
             (close - close.shift())
@@ -342,9 +359,11 @@ def create_time_features(
     """
     time_features = pd.DataFrame()
 
+    # Validate that at least one time feature is requested
     if not any([minute, hour, day, day_of_week, month]):
         raise ValueError("No time features specified for encoding.")
 
+    # Encode minute as cyclic feature using sin/cos transformation
     if minute:
         time_features = pd.concat([
             time_features,
@@ -354,6 +373,8 @@ def create_time_features(
                 max_val=60
             )
         ], axis=1)
+
+    # Encode hour as cyclic feature using sin/cos transformation
     if hour:
         time_features = pd.concat([
             time_features,
@@ -363,6 +384,8 @@ def create_time_features(
                 max_val=24
             )
         ], axis=1)
+
+    # Encode day as cyclic feature using sin/cos transformation
     if day:
         time_features = pd.concat([
             time_features,
@@ -372,6 +395,8 @@ def create_time_features(
                 max_val=timestamps.dt.days_in_month.to_numpy()
             )
         ], axis=1)
+
+    # Encode day of week as cyclic feature using sin/cos transformation
     if day_of_week:
         time_features = pd.concat([
             time_features,
@@ -381,6 +406,8 @@ def create_time_features(
                 max_val=7
             )
         ], axis=1)
+
+    # Encode month as cyclic feature using sin/cos transformation
     if month:
         time_features = pd.concat([
             time_features,
@@ -440,15 +467,21 @@ def calculate_returns(
     Raises:
         ValueError: If invalid method is provided or log is used with unsupported method
     """
+    # Momentum method: simple price ratio
     if method == "momentum":
         returns = price / price.shift(period)
+        # Apply log transformation if requested
         return pd.Series(np.log(returns)) if log else returns - 1
+    # Validate that log is only used with momentum method
     elif log:
         raise ValueError("Using `log=True` is only available with `method='momentum'`.")
+    # Standard percentage change method
     elif method == "pct_change":
         return price.pct_change(period)
+    # Absolute price difference method
     elif method == "price_change":
         return price - price.shift(period)
+    # Handle unknown method
     raise ValueError(f"Unknown method: {method}. Please consult the function docstring.")
 
 
@@ -469,9 +502,13 @@ def get_lagging_features(
     Raises:
         ValueError: If max_lag is less than 1
     """
+    # Validate input parameter
     if max_lag < 1:
         raise ValueError("Parameter `max_lag` must be at least 1.")
+
     lagging_features = pd.DataFrame()
+
+    # Create lags from 1 to max_lag
     for lag in range(1, max_lag + 1):
         lagging_features[f"{ser.name}_lag{lag}"] = ser.shift(lag)
     return lagging_features
@@ -494,10 +531,15 @@ def create_direction_target(
         pd.Series: Binary series indicating price direction (1 for up, 0 for down)
     """
     s = df[price_col_name]
+    # Identify runs where price doesn't change for min_step periods
     run_id = (s != s.shift(min_step)).cumsum()
+    # Get the first value of each run
     run_first = s.groupby(run_id).first()
+    # Get the first value of the next run
     next_run_first = run_first.shift(-1)
+    # Determine if next run's first value is higher (1) or lower (0)
     directions = (next_run_first > run_first).astype("Int8")
+    # Map directions back to original index
     target = run_id.map(directions).astype("Int8")
     target.name = "target"
     return target
@@ -518,6 +560,8 @@ def create_price_target(
         pd.Series: Series of percentage price changes
     """
     price = df[price_col_name]
+    # Calculate price difference between current and next period
     diff = price - price.shift(-1)
+    # Calculate percentage change
     target = (diff / price.shift(-1)).rename("target")
     return target
