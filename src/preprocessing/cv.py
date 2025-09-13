@@ -1,7 +1,24 @@
 import pandas as pd
 import plotly.graph_objects as go
 
-from typing import Literal, Optional, Tuple, List, Union
+from dataclasses import dataclass
+from collections.abc import Generator
+from typing import Literal, Optional, Tuple, List, Iterator, Union
+
+
+@dataclass
+class SplitIndices:
+    """Container for train/validation/test split indices."""
+    train_idx: List[int]
+    val_idx: Optional[List[int]] = None
+    test_idx: Optional[List[int]] = None
+
+    def __iter__(self) -> Iterator[List[int]]:
+        yield self.train_idx
+        if self.val_idx is not None:
+            yield self.val_idx
+        if self.test_idx is not None:
+            yield self.test_idx
 
 
 class GroupTimeSeriesSplit:
@@ -78,35 +95,31 @@ class GroupTimeSeriesSplit:
         timestamps = timestamps.sort_values().reset_index(drop=True)
         t_end = timestamps.iloc[-1]
 
-        # Calculate borders
-        start_third = t_end - self._offset * steps
+        return t_end - self._offset * steps
 
-        return start_third
-
-    def _get_train_test_idx(
+    def _get_fold_indices(
         self,
         df: pd.DataFrame,
         start: pd.Timestamp,
         steps: int
     ):
         """Generate indices for a single group's folds."""
-        train_test = []
-
         for k in range(steps):
             sv = start + k * self._offset
             ev = sv + self._offset
 
             if self._window == "expanding":
                 train_mask = df['ts'] <= sv
-            else: # rolling
+            else:
                 train_mask = (df['ts'] <= sv) & (df['ts'] > sv - self._offset)
 
             test_mask = (df['ts'] > sv) & (df['ts'] <= ev)
-            train_idx = df.loc[train_mask, '_idx'].tolist()
-            test_idx  = df.loc[test_mask, '_idx'].tolist()
-            train_test.append([train_idx, test_idx])
 
-        return train_test
+            train_idx = df.loc[train_mask, '_idx'].tolist()
+            test_idx = df.loc[test_mask, '_idx'].tolist()
+
+            yield train_idx, test_idx
+
 
     def split(
         self,
@@ -114,8 +127,7 @@ class GroupTimeSeriesSplit:
         y: Optional[pd.Series],
         groups: pd.Series,
         timestamps: pd.Series
-    ) -> Tuple[Union[Tuple[List[int],List[int]],
-                    Tuple[List[int],List[int],List[int]]], ...]:
+    ) -> Generator[SplitIndices, None, None]:
         """
             Generate time-series splits preserving group structure.
 
@@ -150,32 +162,38 @@ class GroupTimeSeriesSplit:
             >>>     model.fit(X.iloc[split.train_idx], y.iloc[split.train_idx])
             >>>     val_pred = model.predict(X.iloc[split.val_idx])
         """
-        # we'll need the original positions
+        if groups is None or timestamps is None:
+            raise ValueError("groups and timestamps must be provided")
+
         idx = pd.RangeIndex(len(timestamps))
         df = pd.DataFrame({
-            '_idx':     idx,
-            'group':    groups.values,
-            'ts':       timestamps.values
+            '_idx': idx,
+            'group': groups.values,
+            'ts': timestamps.values
         })
 
-        train_val = []
-        train_test = []
-
         for _, gdf in df.groupby('group'):
-            # sort this group's data by timestamp
-            gdf        = gdf.sort_values('ts').reset_index(drop=True)
-            start_val  = self.get_timestamp_split(gdf['ts'], self._val_folds + self._test_folds)
-            start_test = self.get_timestamp_split(gdf['ts'], self._test_folds)
+            gdf = gdf.sort_values('ts').reset_index(drop=True)
 
-            group_train_val = self._get_train_test_idx(gdf, start_val, self._val_folds)
-            train_val.extend(group_train_val)
+            # Generate validation folds
+            if self._val_folds > 0:
+                start_val = self.get_timestamp_split(gdf['ts'], self._val_folds)
+                for train_idx, val_idx in self._get_fold_indices(gdf, start_val, self._val_folds):
+                    yield SplitIndices(
+                        train_idx=train_idx,
+                        val_idx=val_idx,
+                        test_idx=None
+                    )
 
+            # Generate test folds
             if self._test_folds > 0:
-                group_train_val = self._get_train_test_idx(gdf, start_test, self._test_folds)
-                train_test.extend(group_train_val)
-
-        # return as a tuple of tuples
-        return tuple(train_val), tuple(train_test)
+                start_test = self.get_timestamp_split(gdf['ts'], self._test_folds)
+                for train_idx, test_idx in self._get_fold_indices(gdf, start_test, self._test_folds):
+                    yield SplitIndices(
+                        train_idx=train_idx,
+                        val_idx=None,
+                        test_idx=test_idx
+                    )
 
     def plot_split(
         self, y: pd.Series,
