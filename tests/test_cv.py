@@ -8,65 +8,222 @@ current_script_path = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_script_path)
 sys.path.insert(0, project_root)
 
-from src.preprocessing.cv import GroupTimeSeriesSplit, SplitIndices
+from src.preprocessing.cv import GroupTimeSeriesSplit, SplitIndices, SplitResult
 
 
-# Параметризованные тест-кейсы
+# Test data and expected results
 TEST_CASES = [
-    # Тест 1: Одиночное разбиение
     {
-        "name": "single_split",
+        "id": "single_validation_split",
+        "description": "Single validation split with test interval",
         "dates": pd.date_range('2023-01-01', '2023-01-10', freq='D'),
-        "params": {"val_folds": 1, "test_folds": 0, "interval": '2d'},
-        "expected": [
-            SplitIndices(train_idx=[0, 1, 2, 3, 4, 5, 6, 7], val_idx=[8, 9], test_idx=None)
-        ]
+        "groups": ['AAPL'] * 10,
+        "params": {"val_folds": 1, "test_interval": "2d", "interval": '2d'},
+        "expected": {
+            'AAPL': SplitResult(
+                group='AAPL',
+                train_test_split=SplitIndices(
+                    train_idx=[0, 1, 2, 3, 4, 5, 6, 7],
+                    val_idx=None,
+                    test_idx=[8, 9],
+                    group='AAPL'
+                ),
+                validation_splits=[
+                    SplitIndices(
+                        train_idx=[0, 1, 2, 3, 4, 5],
+                        val_idx=[6, 7],
+                        test_idx=None,
+                        group='AAPL'
+                    )
+                ]
+            )
+        }
     },
-    # Тест 2: Множественное разбиение
     {
-        "name": "multiple_splits",
-        "dates": pd.date_range('2023-01-01', '2023-01-20', freq='D'),
-        "params": {"val_folds": 3, "test_folds": 0, "interval": '3d'},
-        "expected": [
-            SplitIndices(train_idx=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], val_idx=[11, 12, 13], test_idx=None),
-            SplitIndices(train_idx=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], val_idx=[14, 15, 16], test_idx=None),
-            SplitIndices(train_idx=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], val_idx=[17, 18, 19], test_idx=None)
-        ]
+        "id": "multiple_validation_folds",
+        "description": "Multiple validation folds with larger interval",
+        "dates": pd.date_range('2023-01-01', '2023-01-12', freq='D'),
+        "groups": ['AAPL'] * 12,
+        "params": {"val_folds": 2, "test_interval": "2d", "interval": '3d'},
+        "expected": {
+            'AAPL': SplitResult(
+                group='AAPL',
+                train_test_split=SplitIndices(
+                    train_idx=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                    val_idx=None,
+                    test_idx=[10, 11],
+                    group='AAPL'
+                ),
+                validation_splits=[
+                    SplitIndices(
+                        train_idx=[0, 1, 2, 3],
+                        val_idx=[4, 5, 6],
+                        test_idx=None,
+                        group='AAPL'
+                    ),
+                    SplitIndices(
+                        train_idx=[0, 1, 2, 3, 4, 5, 6],
+                        val_idx=[7, 8, 9],
+                        test_idx=None,
+                        group='AAPL'
+                    )
+                ]
+            )
+        }
     },
-    # Тест 3: Скользящее окно с тестовыми фолдами
     {
-        "name": "rolling_window_with_test_folds",
+        "id": "different_intervals",
+        "description": "Different intervals for validation folds",
+        "dates": pd.date_range('2023-01-01', '2023-01-12', freq='D'),
+        "groups": ['AAPL'] * 12,
+        "params": {"val_folds": 3, "test_interval": "2d", "interval": '1d'},
+        "expected": {
+            'AAPL': SplitResult(
+                group='AAPL',
+                train_test_split=SplitIndices(
+                    train_idx=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                    val_idx=None,
+                    test_idx=[10, 11],
+                    group='AAPL'
+                ),
+                validation_splits=[
+                    SplitIndices(
+                        train_idx=[0, 1, 2, 3, 4, 5, 6],
+                        val_idx=[7],
+                        test_idx=None,
+                        group='AAPL'
+                    ),
+                    SplitIndices(
+                        train_idx=[0, 1, 2, 3, 4, 5, 6, 7],
+                        val_idx=[8],
+                        test_idx=None,
+                        group='AAPL'
+                    ),
+                    SplitIndices(
+                        train_idx=[0, 1, 2, 3, 4, 5, 6, 7, 8],
+                        val_idx=[9],
+                        test_idx=None,
+                        group='AAPL'
+                    )
+                ]
+            )
+        }
+    },
+    {
+        "id": "rolling_window",
+        "description": "Rolling window without test split",
         "dates": pd.date_range('2023-01-01', '2023-01-16', freq='D'),
-        "params": {"val_folds": 2, "test_folds": 1, "interval": '3d', "train_interval": "4d", "window": 'rolling'},
-        "expected": [
-            SplitIndices(train_idx=[3, 4, 5, 6], val_idx=[7, 8, 9], test_idx=None),
-            SplitIndices(train_idx=[6, 7, 8, 9], val_idx=[10, 11, 12], test_idx=None),
-            SplitIndices(train_idx=[9, 10, 11, 12], val_idx=None, test_idx=[13, 14, 15])
-        ]
+        "groups": ['AAPL'] * 16,
+        "params": {"val_folds": 2, "interval": '3d', "train_interval": "6d", "window": 'rolling'},
+        "expected": {
+            'AAPL': SplitResult(
+                group='AAPL',
+                train_test_split=None,
+                validation_splits=[
+                    SplitIndices(
+                        train_idx=[3, 4, 5, 6, 7, 8, 9],
+                        val_idx=[10, 11, 12],
+                        test_idx=None,
+                        group='AAPL'
+                    ),
+                    SplitIndices(
+                        train_idx=[6, 7, 8, 9, 10, 11, 12],
+                        val_idx=[13, 14, 15],
+                        test_idx=None,
+                        group='AAPL'
+                    )
+                ]
+            )
+        }
+    },
+    {
+        "id": "multiple_groups",
+        "description": "Multiple groups with separate splits",
+        "dates": pd.date_range('2023-01-01', '2023-01-10', freq='D'),
+        "groups": ['AAPL'] * 10 + ['MSFT'] * 10,
+        "timestamps": lambda: pd.Series(list(pd.date_range('2023-01-01', '2023-01-10', freq='D')) * 2),
+        "params": {"val_folds": 2, "test_interval": "2d", "interval": '2d'},
+        "expected": {
+            'AAPL': SplitResult(
+                group='AAPL',
+                train_test_split=SplitIndices(
+                    train_idx=[0, 1, 2, 3, 4, 5, 6, 7],
+                    val_idx=None,
+                    test_idx=[8, 9],
+                    group='AAPL'
+                ),
+                validation_splits=[
+                    SplitIndices(
+                        train_idx=[0, 1, 2, 3],
+                        val_idx=[4, 5],
+                        test_idx=None,
+                        group='AAPL'
+                    ),
+                    SplitIndices(
+                        train_idx=[0, 1, 2, 3, 4, 5],
+                        val_idx=[6, 7],
+                        test_idx=None,
+                        group='AAPL'
+                    )
+                ]
+            ),
+            'MSFT': SplitResult(
+                group='MSFT',
+                train_test_split=SplitIndices(
+                    train_idx=[10, 11, 12, 13, 14, 15, 16, 17],
+                    val_idx=None,
+                    test_idx=[18, 19],
+                    group='MSFT'
+                ),
+                validation_splits=[
+                    SplitIndices(
+                        train_idx=[10, 11, 12, 13],
+                        val_idx=[14, 15],
+                        test_idx=None,
+                        group='MSFT'
+                    ),
+                    SplitIndices(
+                        train_idx=[10, 11, 12, 13, 14, 15],
+                        val_idx=[16, 17],
+                        test_idx=None,
+                        group='MSFT'
+                    )
+                ]
+            )
+        }
     }
 ]
 
-@pytest.mark.parametrize("test_case", TEST_CASES, ids=[tc["name"] for tc in TEST_CASES])
+@pytest.mark.parametrize("test_case", TEST_CASES, ids=[case["id"] for case in TEST_CASES])
 def test_group_time_series_split(test_case):
-    """Параметризованный тест для GroupTimeSeriesSplit"""
+    """Test GroupTimeSeriesSplit with various configurations"""
+    # Prepare test data
     dates = test_case["dates"]
-    groups = ['A'] * len(dates)
+    groups = test_case["groups"]
 
+    # Handle special case for multiple groups with custom timestamps
+    if "timestamps" in test_case:
+        timestamps = test_case["timestamps"]()
+    else:
+        timestamps = pd.Series(dates)
+
+    # Initialize splitter
     cv = GroupTimeSeriesSplit(**test_case["params"])
-    splits = list(cv.split(
+
+    # Execute split
+    splits = cv.split(
         X=None,
         y=None,
         groups=pd.Series(groups),
-        timestamps=pd.Series(dates)
-    ))
+        timestamps=timestamps
+    )
 
+    # Verify results
     expected = test_case["expected"]
 
-    # Проверяем количество сплитов
-    assert len(splits) == len(expected)
+    assert splits.keys() == expected.keys()
 
-    # Проверяем каждый сплит
-    for i, (actual_split, expected_split) in enumerate(zip(splits, expected)):
-        assert actual_split.train_idx == expected_split.train_idx, f"Train index mismatch in split {i}"
-        assert actual_split.val_idx == expected_split.val_idx, f"Validation index mismatch in split {i}"
-        assert actual_split.test_idx == expected_split.test_idx, f"Test index mismatch in split {i}"
+    for group in splits:
+        assert splits[group].group == expected[group].group
+        assert splits[group].train_test_split == expected[group].train_test_split
+        assert splits[group].validation_splits == expected[group].validation_splits
