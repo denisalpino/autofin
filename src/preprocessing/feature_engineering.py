@@ -10,6 +10,27 @@ def create_features(
     df: pd.DataFrame,
     features_config: dict
 ) -> pd.DataFrame:
+    """
+    Creates feature matrix based on configuration dictionary.
+
+    Args:
+        df: Input DataFrame with raw financial data
+        features_config: Configuration dictionary specifying which features to create
+            - base_columns: Dictionary mapping standard names to actual column names
+            - ohlc: Dictionary specifying which OHLC prices to include as features
+            - time_features: Dictionary specifying which time-based features to create
+            - returns: Dictionary configuring returns calculation
+            - indicators: Dictionary configuring technical indicator calculations
+            - lags: Dictionary specifying lag features to create
+
+    Returns:
+        pd.DataFrame: DataFrame with engineered features
+
+    Raises:
+        KeyError: If required base_columns are missing from features_config
+        TypeError: If indicators configuration is not a dictionary
+        ValueError: If time_features are requested but no parameters are specified
+    """
     df = df.copy()
     original_index = df.index
     base_columns = features_config.get("base_columns", {})
@@ -80,6 +101,21 @@ def calculate_indicator(
 ) -> pd.DataFrame | pd.Series:
     """
     Calculate an indicator based on the provided configuration.
+
+    Args:
+        df: Input DataFrame with OHLC price data
+        name: Name of the indicator to calculate
+        config: Configuration dictionary for the indicator
+        base_columns: Dictionary mapping standard column names to actual column names
+
+    Returns
+    ---
+    pd.DataFrame | pd.Series:
+        Calculated indicator values
+
+    Raises:
+        ValueError: If unknown indicator name is provided
+        KeyError: If required columns are missing from base_columns
     """
     open, high = df[base_columns["open"]], df[base_columns["high"]]
     low, close = df[base_columns["low"]], df[base_columns["close"]]
@@ -158,6 +194,7 @@ def calculate_indicator(
         bears_power.name = "BePo"
         bulls_power.name = "BuPo"
         return pd.concat([bears_power, bulls_power], axis=1)
+
     # Mass Index (MI)
     elif name.startswith("MI"):
         mi = indicators.massi(
@@ -167,6 +204,7 @@ def calculate_indicator(
             slow=config["long_window"]
         )
         return mi  # type: ignore
+
     # Moving Average (including few kinds)
     elif name.startswith("MA_"):
         prices = df[config["price"]]
@@ -285,7 +323,23 @@ def create_time_features(
     day_of_week: bool = False,
     month: bool = False
 ) -> pd.DataFrame:
-    """Calculates cyclic time-features based on `cos` and `sin` functions"""
+    """
+    Calculates cyclic time-features based on `cos` and `sin` functions.
+
+    Args:
+        timestamps: Series containing datetime values
+        minute: Whether to include minute-based features
+        hour: Whether to include hour-based features
+        day: Whether to include day-of-month features
+        day_of_week: Whether to include day-of-week features
+        month: Whether to include month features
+
+    Returns:
+        pd.DataFrame: DataFrame with cyclic time features encoded as sin/cos pairs
+
+    Raises:
+        ValueError: If no time features are specified for encoding
+    """
     time_features = pd.DataFrame()
 
     if not any([minute, hour, day, day_of_week, month]):
@@ -344,8 +398,18 @@ def encode_cyclic(
     values: NDArray,
     col_name: str,
     max_val: int | NDArray
-):
-    """Encode cyclic features using sin and cos transformations"""
+) -> pd.DataFrame:
+    """
+    Encode cyclic features using sin and cos transformations.
+
+    Args:
+        values: Array of values to encode
+        col_name: Base name for the output columns
+        max_val: Maximum value for the cyclic feature (used for normalization)
+
+    Returns:
+        pd.DataFrame: DataFrame with sin and cos encoded features
+    """
     encoded_features = pd.DataFrame()
     encoded_features[f"{col_name}_sin"] = np.sin(2 * np.pi * values / max_val)
     encoded_features[f"{col_name}_cos"] = np.cos(2 * np.pi * values / max_val)
@@ -358,6 +422,24 @@ def calculate_returns(
     method: Literal["momentum", "pct_change", "price_change"] = "pct_change",
     log=False
 ) -> pd.Series:
+    """
+    Calculate price returns using specified method.
+
+    Args:
+        price: Series of price values
+        period: Number of periods to calculate returns over
+        method: Method for calculating returns:
+            - "momentum": price[t] / price[t-period]
+            - "pct_change": percentage change
+            - "price_change": absolute price difference
+        log: Whether to apply logarithmic transformation (only for momentum method)
+
+    Returns:
+        pd.Series: Series of calculated returns
+
+    Raises:
+        ValueError: If invalid method is provided or log is used with unsupported method
+    """
     if method == "momentum":
         returns = price / price.shift(period)
         return pd.Series(np.log(returns)) if log else returns - 1
@@ -374,6 +456,19 @@ def get_lagging_features(
     ser: pd.Series,
     max_lag: int
 ) -> pd.DataFrame:
+    """
+    Create lagged versions of a time series.
+
+    Args:
+        ser: Input time series
+        max_lag: Maximum number of lags to create (will create lags 1 to max_lag)
+
+    Returns:
+        pd.DataFrame: DataFrame with lagged features
+
+    Raises:
+        ValueError: If max_lag is less than 1
+    """
     if max_lag < 1:
         raise ValueError("Parameter `max_lag` must be at least 1.")
     lagging_features = pd.DataFrame()
@@ -387,6 +482,17 @@ def create_direction_target(
     price_col_name: str,
     min_step: int = 1,
 ) -> pd.Series:
+    """
+    Create directional target variable indicating price movement direction.
+
+    Args:
+        df: DataFrame containing price data
+        price_col_name: Name of the price column to use
+        min_step: Minimum number of periods for a price movement to be considered significant
+
+    Returns:
+        pd.Series: Binary series indicating price direction (1 for up, 0 for down)
+    """
     s = df[price_col_name]
     run_id = (s != s.shift(min_step)).cumsum()
     run_first = s.groupby(run_id).first()
@@ -401,6 +507,16 @@ def create_price_target(
     df: pd.DataFrame,
     price_col_name: str
 ) -> pd.Series:
+    """
+    Create price-based target variable representing percentage change.
+
+    Args:
+        df: DataFrame containing price data
+        price_col_name: Name of the price column to use
+
+    Returns:
+        pd.Series: Series of percentage price changes
+    """
     price = df[price_col_name]
     diff = price - price.shift(-1)
     target = (diff / price.shift(-1)).rename("target")
