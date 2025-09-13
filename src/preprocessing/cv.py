@@ -27,6 +27,7 @@ class GroupTimeSeriesSplit:
         val_folds: int = 1,
         test_folds: int = 0,
         interval: str = "7d",
+        train_interval: Optional[str] = None,
         window: Literal["expanding", "rolling"] = "expanding"
     ) -> None:
         """
@@ -45,6 +46,9 @@ class GroupTimeSeriesSplit:
                 - 'h' - hours
                 - 'd' - business days
                 - 'M' - months
+            train_interval : str, optional
+                Time interval for training data in rolling window mode.
+                If None, uses the same interval as validation/test.
             window : {'expanding', 'rolling'}, default="expanding"
                 Window type for training data:
                 - 'expanding' - use all past data
@@ -60,6 +64,17 @@ class GroupTimeSeriesSplit:
         self._test_folds = test_folds
         self._offset     = self._parse_interval(interval)
         self._window     = window
+        if train_interval:
+            self._train_offset = self._parse_interval(train_interval)
+        else:
+            self._train_offset = self._offset
+
+        # Validate parameters
+        if val_folds < 0 or test_folds < 0:
+            raise ValueError("val_folds and test_folds must be non-negative integers")
+
+        if window == "rolling" and train_interval is None:
+            raise ValueError("train_interval must be specified for rolling window")
 
     def _parse_interval(self, s: str):
         """Parse time interval string into pandas offset object."""
@@ -69,6 +84,20 @@ class GroupTimeSeriesSplit:
         if unit == 'd': return pd.Timedelta(days=n)
         if unit == 'M': return pd.DateOffset(months=n)
         raise ValueError("Unsupported unit. Use 'm', 'h', 'd', or 'M'")
+
+    def _validate_time_range(self, timestamps: pd.Series) -> None:
+        """Validate if the time range is sufficient for the requested splits."""
+        total_needed = self._offset * (self._val_folds + self._test_folds)
+        if self._window == "rolling":
+            total_needed += self._train_offset
+
+        time_range = timestamps.max() - timestamps.min()
+
+        if time_range < total_needed:
+            raise ValueError(
+                f"Time range {time_range} is insufficient for requested splits. "
+                f"Needed at least {total_needed}."
+            )
 
     def get_timestamp_split(self, timestamps: pd.Series, steps: int) -> pd.Timestamp:
         """
@@ -98,11 +127,11 @@ class GroupTimeSeriesSplit:
         return t_end - self._offset * steps
 
     def _get_fold_indices(
-        self,
+    self,
         df: pd.DataFrame,
         start: pd.Timestamp,
         steps: int
-    ):
+    ) -> Generator[Tuple[List[int], List[int]], None, None]:
         """Generate indices for a single group's folds."""
         for k in range(steps):
             sv = start + k * self._offset
@@ -110,8 +139,9 @@ class GroupTimeSeriesSplit:
 
             if self._window == "expanding":
                 train_mask = df['ts'] <= sv
-            else:
-                train_mask = (df['ts'] <= sv) & (df['ts'] > sv - self._offset)
+            else:  # rolling
+                train_start = sv - self._train_offset
+                train_mask = (df['ts'] > train_start) & (df['ts'] <= sv)
 
             test_mask = (df['ts'] > sv) & (df['ts'] <= ev)
 
@@ -176,7 +206,7 @@ class GroupTimeSeriesSplit:
 
             # Generate validation folds
             if self._val_folds > 0:
-                start_val = self.get_timestamp_split(gdf['ts'], self._val_folds)
+                start_val = self.get_timestamp_split(gdf['ts'], self._val_folds + self._test_folds)
                 for train_idx, val_idx in self._get_fold_indices(gdf, start_val, self._val_folds):
                     yield SplitIndices(
                         train_idx=train_idx,
