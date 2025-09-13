@@ -66,15 +66,15 @@ def create_features(
 
 
 def calculate_indicator(
-        df: pd.DataFrame,
-        name: str,
-        config: dict,
-        base_columns: dict
+    df: pd.DataFrame,
+    name: str,
+    config: dict,
+    base_columns: dict
 ) -> pd.DataFrame | pd.Series:
     """
     Calculate an indicator based on the provided configuration.
     """
-    open_, high = df[base_columns["open"]], df[base_columns["high"]]
+    open, high = df[base_columns["open"]], df[base_columns["high"]]
     low, close = df[base_columns["low"]], df[base_columns["close"]]
 
     if name.startswith("ATR"):
@@ -131,17 +131,17 @@ def calculate_indicator(
         vr.name = "volatility_ratio"
         return vr
     elif name == "candle_strength":
-        cs = ((close - open_) / (high - low + 1e-5)).rename("candle_strength")
+        cs = ((close - open) / (high - low + 1e-5)).rename("candle_strength")
         return cs
     elif name == "body":
-        body = (open_ - close).abs().rename("body")
+        body = (open - close).abs().rename("body")
         return body
     elif name == "upper_wick":
-        oc = pd.concat([open_, close], axis=1)
+        oc = pd.concat([open, close], axis=1)
         upper_wick = (high - oc.max(axis=1)).rename("upper_wick")
         return upper_wick
     elif name == "lower_wick":
-        oc = pd.concat([open_, close], axis=1)
+        oc = pd.concat([open, close], axis=1)
         lower_wick = (oc.min(axis=1) - low).rename("lower_wick")
         return lower_wick
     elif name == "cc_diff":
@@ -182,12 +182,12 @@ def calculate_indicator(
 
 
 def create_time_features(
-        timestamps: pd.Series,
-        minute: bool = False,
-        hour: bool = False,
-        day: bool = False,
-        day_of_week: bool = False,
-        month: bool = False
+    timestamps: pd.Series,
+    minute: bool = False,
+    hour: bool = False,
+    day: bool = False,
+    day_of_week: bool = False,
+    month: bool = False
 ) -> pd.DataFrame:
     """Calculates cyclic time-features based on `cos` and `sin` functions"""
     time_features = pd.DataFrame()
@@ -225,9 +225,9 @@ def create_time_features(
 
 
 def encode_cyclic(
-        values: NDArray,
-        col_name: str,
-        max_val: int | NDArray
+    values: NDArray,
+    col_name: str,
+    max_val: int | NDArray
 ):
     """Encode cyclic features using sin and cos transformations"""
     encoded_features = pd.DataFrame()
@@ -237,10 +237,10 @@ def encode_cyclic(
 
 
 def calculate_returns(
-        price: pd.Series,
-        period: int = 1,
-        method: Literal["momentum", "pct_change", "price_change"] = "pct_change",
-        log=False
+    price: pd.Series,
+    period: int = 1,
+    method: Literal["momentum", "pct_change", "price_change"] = "pct_change",
+    log=False
 ) -> pd.Series:
     if method == "momentum":
         returns = price / price.shift(period)
@@ -255,8 +255,8 @@ def calculate_returns(
 
 
 def get_lagging_features(
-        ser: pd.Series,
-        max_lag: int
+    ser: pd.Series,
+    max_lag: int
 ) -> pd.DataFrame:
     if max_lag < 2:
         raise ValueError("Parameter `max_lag` must be at least 2.")
@@ -267,9 +267,9 @@ def get_lagging_features(
 
 
 def create_direction_target(
-        df: pd.DataFrame,
-        price_col_name: str,
-        min_step: int = 1,
+    df: pd.DataFrame,
+    price_col_name: str,
+    min_step: int = 1,
 ) -> pd.Series:
     s = df[price_col_name]
     run_id = (s != s.shift(min_step)).cumsum()
