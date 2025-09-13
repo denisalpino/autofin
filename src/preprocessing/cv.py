@@ -13,17 +13,31 @@ class GroupTimeSeriesSplit:
         window: Literal["expanding", "rolling"] = "expanding"
     ) -> None:
         """
-        interval : str
-            A string like '7d', '12h', '15m', '1M' giving the length T of each
-            test window.
-        val_folds : int
-            Number of consecutive validation windows to generate per group. Value greater
-            than 1 means using cross validation
-        test_folds : int
-            Number of consecutive test windows to generate per group. Value 0 means
-            that we don't need to return indecies for testing samples.
-        window : 'expanding' or 'rolling'
-            Type of window.
+            Time-series cross-validation splitter with group support.
+
+            Parameters
+            ---
+            val_folds : int, default=1
+                Number of consecutive validation folds to generate per group
+            test_folds : int, default=0
+                Number of consecutive test folds to generate per group.
+                If 0, no test split is created.
+            interval : str, default="7d"
+                Time interval for each fold. Supported units:
+                - 'm' - minutes
+                - 'h' - hours
+                - 'd' - business days
+                - 'M' - months
+            window : {'expanding', 'rolling'}, default="expanding"
+                Window type for training data:
+                - 'expanding' - use all past data
+                - 'rolling' - use fixed window size
+
+            Examples
+            ---
+            >>> cv = GroupTimeSeriesSplit(val_folds=3, test_folds=1, interval='7d')
+            >>> for train_idx, val_idx in cv.split(X, y, groups, timestamps):
+            >>>     print(f"Train: {len(train_idx)}, Val: {len(val_idx)}")
         """
         self._val_folds  = val_folds
         self._test_folds = test_folds
@@ -31,6 +45,7 @@ class GroupTimeSeriesSplit:
         self._window     = window
 
     def _parse_interval(self, s: str):
+        """Parse time interval string into pandas offset object."""
         n, unit = int(s[:-1]), s[-1]
         if unit == 'm': return pd.Timedelta(minutes=n)
         if unit == 'h': return pd.Timedelta(hours=n)
@@ -40,26 +55,24 @@ class GroupTimeSeriesSplit:
 
     def get_timestamp_split(self, timestamps: pd.Series, steps: int) -> pd.Timestamp:
         """
-        Separates the `interval` * `steps` of the most recent observations from the pandas.DataFrame.
+            Calculate split boundary timestamp for given number of steps.
 
-        Parameters
-        ---
-        timestamps : pandas.Series[pandas.Timestamp]
-            Series of timestamps from main pandas.DataFrame.
-        interval : str
-            A string of the form `7d`, `12h`, `15m`, `1M` (N + unit: m, h, d, M).
-        steps : int
-            Number of repetitions of the interval.
+            Parameters
+            ---
+            timestamps : pd.Series
+                Series of timestamps to split
+            steps : int
+                Number of intervals to offset from the end
 
-        Returns
-        ---
-        pandas.Timestamp
+            Returns
+            ---
+            pd.Timestamp
+                Boundary timestamp for the split
 
-        Example:
-        ---
-        ```
-        start = get_timestamp_split(df["timestamps"], '7d', steps=4)
-        ```
+            Examples
+            ---
+            >>> split_point = get_timestamp_split(timestamps, steps=3)
+            >>> print(f"Split at: {split_point}")
         """
         # Sort and get last timestamp
         timestamps = timestamps.sort_values().reset_index(drop=True)
@@ -76,6 +89,7 @@ class GroupTimeSeriesSplit:
         start: pd.Timestamp,
         steps: int
     ):
+        """Generate indices for a single group's folds."""
         train_test = []
 
         for k in range(steps):
@@ -103,36 +117,38 @@ class GroupTimeSeriesSplit:
     ) -> Tuple[Union[Tuple[List[int],List[int]],
                     Tuple[List[int],List[int],List[int]]], ...]:
         """
-        Time-series cross-validation splitter, similar to sklearn.TimeSeriesSplit,
-        but applied separately within each group.
+            Generate time-series splits preserving group structure.
 
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Feature matrix (not used in split logic, but included to mirror sklearn API).
-        y : pd.Series
-            Target vector (not used in split logic, but included to mirror sklearn API).
-        groups : pd.Series
-            A group label for each row of X/y/timestamps. Splits are generated
-            independently for each unique group value, in order.
-        timestamps : pd.Series
-            A pandas Series of Timestamps, same length as X/y/groups.
+            Parameters
+            ---
+            X : pd.DataFrame, optional
+                Feature matrix (not used directly, for scikit-learn compatibility)
+            y : pd.Series, optional
+                Target variable (not used directly, for scikit-learn compatibility)
+            groups : pd.Series
+                Group labels for each sample
+            timestamps : pd.Series
+                Timestamps for each sample
 
-        Returns (TODO)
-        -------
-        splits : tuple of (train_idx, val_idx)
-            A tuple of length (n_groups * steps), where each element is a pair
-            of lists of integer indices into X/y:
+            Yields
+            ---
+            SplitIndices
+                Dataclass containing:
+                - train_idx : list of training indices
+                - val_idx : list of validation indices (if val_folds > 0)
+                - test_idx : list of test indices (if test_folds > 0)
 
-            - train_idx : all rows of the *same* group whose timestamp is
-                strictly *before* the start of the k-th val window,
-            - val_idx  : all rows of the same group whose timestamp falls
-                into the k-th val window itself.
+            Raises
+            ---
+            ValueError
+                If groups or timestamps are not provided
 
-            The val windows for each group are the last `steps` windows of
-            length `interval`, ordered from oldest to most recent, and for
-            each successive fold, the training set automatically grows
-            (includes all data older than the val window).
+            Examples
+            ---
+            >>> cv = GroupTimeSeriesSplit(val_folds=2, test_folds=1)
+            >>> for split in cv.split(X, y, groups, timestamps):
+            >>>     model.fit(X.iloc[split.train_idx], y.iloc[split.train_idx])
+            >>>     val_pred = model.predict(X.iloc[split.val_idx])
         """
         # we'll need the original positions
         idx = pd.RangeIndex(len(timestamps))
@@ -168,6 +184,27 @@ class GroupTimeSeriesSplit:
         timestamps: pd.Series,
         y_title: str
     ):
+        """
+            Visualize splits for a specific group.
+
+            Parameters
+            ----------
+            y : pd.Series
+                Target variable for visualization
+            groups : pd.Series
+                Group labels for each sample
+            group_name : str
+                Specific group to visualize
+            timestamps : pd.Series
+                Timestamps for each sample
+            y_title : str
+                Y-axis title for the plot
+
+            Returns
+            -------
+            go.Figure
+                Plotly figure object with visualization
+        """
         y_group          = y[groups == group_name]
         timestamps_group = timestamps[groups == group_name]
 
