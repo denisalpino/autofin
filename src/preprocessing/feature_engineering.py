@@ -11,6 +11,7 @@ def create_features(
     features_config: dict
 ) -> pd.DataFrame:
     df = df.copy()
+    original_index = df.index
     base_columns = features_config.get("base_columns", {})
     feature_frames = []
 
@@ -54,6 +55,12 @@ def create_features(
             raise TypeError(f"Unsupported indicator configuration type: {type(ind_cfg)}")
 
     # Concatenate features built so far
+    feature_frames = [frame for frame in feature_frames if not frame.empty]
+    if feature_frames:
+        features = pd.concat(feature_frames, axis=1).reindex(df.index)
+    else:
+        features = pd.DataFrame(index=df.index)
+
     features = pd.concat(feature_frames, axis=1)
 
     # Lagging feature engineering
@@ -62,7 +69,7 @@ def create_features(
             lag_feats = get_lagging_features(features[col], max_lag=lag)
             features = pd.concat([features, lag_feats], axis=1)
 
-    return features
+    return features.reindex(original_index)
 
 
 def calculate_indicator(
@@ -353,7 +360,7 @@ def calculate_returns(
 ) -> pd.Series:
     if method == "momentum":
         returns = price / price.shift(period)
-        return pd.Series(np.log(returns)) if log else returns
+        return pd.Series(np.log(returns)) if log else returns - 1
     elif log:
         raise ValueError("Using `log=True` is only available with `method='momentum'`.")
     elif method == "pct_change":
