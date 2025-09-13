@@ -66,9 +66,9 @@ class GroupTimeSeriesSplit:
         n, unit = int(s[:-1]), s[-1]
         if unit == 'm': return pd.Timedelta(minutes=n)
         if unit == 'h': return pd.Timedelta(hours=n)
-        if unit == 'd': return pd.tseries.offsets.BDay(n)
+        if unit == 'd': return pd.Timedelta(days=n)
         if unit == 'M': return pd.DateOffset(months=n)
-        raise ValueError("Unsupported unit, use [m,h,d,M].")
+        raise ValueError("Unsupported unit. Use 'm', 'h', 'd', or 'M'")
 
     def get_timestamp_split(self, timestamps: pd.Series, steps: int) -> pd.Timestamp:
         """
@@ -119,7 +119,6 @@ class GroupTimeSeriesSplit:
             test_idx = df.loc[test_mask, '_idx'].tolist()
 
             yield train_idx, test_idx
-
 
     def split(
         self,
