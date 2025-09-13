@@ -1,6 +1,7 @@
+import warnings
 from dataclasses import dataclass
 from collections.abc import Generator
-from typing import Literal, Optional, Tuple, List, Iterator
+from typing import Literal, Optional, Dict, List, Iterator, Union
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -19,10 +20,13 @@ class SplitIndices:
         List of indices for validation samples (None if not applicable)
     test_idx : Optional[List[int]]
         List of indices for test samples (None if not applicable)
+    group : str
+        Group identifier for this split
     """
     train_idx: List[int]
     val_idx: Optional[List[int]] = None
     test_idx: Optional[List[int]] = None
+    group: Optional[str] = None
 
     def __iter__(self) -> Iterator[List[int]]:
         """Iterator implementation for unpacking split indices."""
@@ -31,6 +35,29 @@ class SplitIndices:
             yield self.val_idx
         if self.test_idx is not None:
             yield self.test_idx
+
+
+@dataclass
+class SplitResult:
+    """
+    Container for all splits for a group.
+
+    Attributes
+    ----------
+    group : str
+        Group identifier
+    train_test_split : Optional[SplitIndices]
+        Full train-test split (if test_interval is specified)
+    validation_splits : List[SplitIndices]
+        List of validation splits
+    """
+    group: str
+    train_test_split: Optional[SplitIndices] = None
+    validation_splits: List[SplitIndices] = None
+
+    def __post_init__(self):
+        if self.validation_splits is None:
+            self.validation_splits = []
 
 
 class GroupTimeSeriesSplit:
@@ -57,30 +84,32 @@ class GroupTimeSeriesSplit:
     --------
     Basic usage with single validation fold:
     >>> cv = GroupTimeSeriesSplit(val_folds=1, interval='7d')
-    >>> for train_idx, val_idx in cv.split(X, y, groups, timestamps):
-    >>>     model.fit(X.iloc[train_idx], y.iloc[train_idx])
-    >>>     score = model.score(X.iloc[val_idx], y.iloc[val_idx])
-
-    Multiple validation folds with rolling window:
-    >>> cv = GroupTimeSeriesSplit(val_folds=3, interval='2d',
-    >>>                         train_interval='14d', window='rolling')
-    >>> for train_idx, val_idx in cv.split(X, y, groups, timestamps):
-    >>>     # Each fold uses 14 days for training and 2 days for validation
-    >>>     model.fit(X.iloc[train_idx], y.iloc[train_idx])
+    >>> results = cv.split(X, y, groups, timestamps)
+    >>> for group_result in results.values():
+    >>>     for split in group_result.validation_splits:
+    >>>         model.fit(X.iloc[split.train_idx], y.iloc[split.train_idx])
+    >>>         score = model.score(X.iloc[split.val_idx], y.iloc[split.val_idx])
 
     With test set reservation:
-    >>> cv = GroupTimeSeriesSplit(val_folds=2, test_folds=1, interval='5d')
-    >>> splits = list(cv.split(X, y, groups, timestamps))
-    >>> # First two splits are validation, last is test
+    >>> cv = GroupTimeSeriesSplit(val_folds=2, test_interval='5d', interval='5d')
+    >>> results = cv.split(X, y, groups, timestamps)
+    >>> for group_name, group_result in results.items():
+    >>>     if group_result.train_test_split:
+    >>>         # Use full train-test split
+    >>>         train_idx = group_result.train_test_split.train_idx
+    >>>         test_idx = group_result.train_test_split.test_idx
+    >>>         model.fit(X.iloc[train_idx], y.iloc[train_idx])
+    >>>         score = model.score(X.iloc[test_idx], y.iloc[test_idx])
     """
 
     def __init__(
         self,
         val_folds: int = 1,
-        test_folds: int = 0,
+        test_interval: Optional[str] = None,
         interval: str = "7d",
         train_interval: Optional[str] = None,
-        window: Literal["expanding", "rolling"] = "expanding"
+        window: Literal["expanding", "rolling"] = "expanding",
+        min_train_samples: int = 1
     ) -> None:
         """
         Initialize the time-series cross-validation splitter.
@@ -90,15 +119,15 @@ class GroupTimeSeriesSplit:
         val_folds : int, default=1
             Number of consecutive validation folds to generate per group.
             Each validation fold covers one interval period.
-            Set to 0 to skip validation (only test folds will be generated).
+            Set to 0 to skip validation (only test splits will be generated).
 
-        test_folds : int, default=0
-            Number of consecutive test folds to generate per group.
-            Each test fold covers one interval period.
-            Set to 0 to skip test set creation (only validation folds will be generated).
+        test_interval : str, optional
+            Time interval for test data. If provided, reserves this period
+            at the end of each group's timeline for testing.
+            Supported units: 'm' (minutes), 'h' (hours), 'd' (days), 'M' (months)
 
         interval : str, default="7d"
-            Time interval for each validation/test fold. Supported units:
+            Time interval for each validation fold. Supported units:
             - 'm' - minutes (e.g., '15m' for 15 minutes)
             - 'h' - hours (e.g., '12h' for 12 hours)
             - 'd' - days (e.g., '7d' for 7 days)
@@ -106,7 +135,7 @@ class GroupTimeSeriesSplit:
 
         train_interval : str, optional
             Time interval for training data in rolling window mode.
-            If None, uses the same interval as validation/test.
+            If None, uses the same interval as validation.
             Required when window='rolling'.
             Ignored when window='expanding'.
 
@@ -115,35 +144,41 @@ class GroupTimeSeriesSplit:
             - 'expanding' - use all available past data for training
             - 'rolling' - use a fixed time window for training
 
+        min_train_samples : int, default=1
+            Minimum number of training samples required for a valid split.
+            Splits with fewer training samples will be skipped.
+
         Raises
         ------
         ValueError
-            If val_folds or test_folds are negative, or if rolling window is used
+            If val_folds is negative, or if rolling window is used
             without specifying train_interval.
-
-        Notes
-        -----
-        - The total time range needed is (val_folds + test_folds) * interval
-        - For rolling windows, an additional train_interval is needed
-        - If the available data is insufficient, a ValueError will be raised during splitting
         """
-        self._val_folds  = val_folds
-        self._test_folds = test_folds
-        self._offset     = self._parse_interval(interval)
-        self._window     = window
+        self._val_folds = val_folds
+        self._test_interval = test_interval
+        self._offset = self._parse_interval(interval)
+        self._window = window
+        self._min_train_samples = min_train_samples
+
         if train_interval:
             self._train_offset = self._parse_interval(train_interval)
         else:
             self._train_offset = self._offset
 
+        # Parse test interval if provided
+        if test_interval:
+            self._test_offset = self._parse_interval(test_interval)
+        else:
+            self._test_offset = None
+
         # Validate parameters
-        if val_folds < 0 or test_folds < 0:
-            raise ValueError("val_folds and test_folds must be non-negative integers")
+        if val_folds < 0:
+            raise ValueError("val_folds must be a non-negative integer")
 
         if window == "rolling" and train_interval is None:
             raise ValueError("train_interval must be specified for rolling window")
 
-    def _parse_interval(self, s: str):
+    def _parse_interval(self, s: str) -> Union[pd.Timedelta, pd.DateOffset]:
         """Parse time interval string into pandas offset object."""
         n, unit = int(s[:-1]), s[-1]
         if unit == 'm': return pd.Timedelta(minutes=n)
@@ -166,7 +201,11 @@ class GroupTimeSeriesSplit:
         ValueError
             If the time range is insufficient for the requested splits
         """
-        total_needed = self._offset * (self._val_folds + self._test_folds)
+        total_needed = self._offset * self._val_folds
+
+        if self._test_offset:
+            total_needed += self._test_offset
+
         if self._window == "rolling":
             total_needed += self._train_offset
 
@@ -193,41 +232,19 @@ class GroupTimeSeriesSplit:
         -------
         pd.Timestamp
             Boundary timestamp for the split
-
-        Examples
-        --------
-        >>> split_point = cv.get_timestamp_split(timestamps, steps=3)
-        >>> print(f"Split at: {split_point}")
         """
-        # Sort and get last timestamp
         timestamps = timestamps.sort_values().reset_index(drop=True)
         t_end = timestamps.iloc[-1]
-
         return t_end - self._offset * steps
 
     def _get_fold_indices(
-    self,
+        self,
         df: pd.DataFrame,
         start: pd.Timestamp,
-        steps: int
-    ) -> Generator[Tuple[List[int], List[int]], None, None]:
-        """
-        Generate indices for a single group's folds.
-
-        Parameters
-        ----------
-        df : pd.DataFrame
-            DataFrame containing the group's data with '_idx' and 'ts' columns
-        start : pd.Timestamp
-            Starting timestamp for the first fold
-        steps : int
-            Number of folds to generate
-
-        Yields
-        ------
-        Tuple[List[int], List[int]]
-            Tuple of (train_indices, test_indices) for each fold
-        """
+        steps: int,
+        group_name: str
+    ) -> Generator[SplitIndices, None, None]:
+        """Generate indices for a single group's folds."""
         for k in range(steps):
             sv = start + k * self._offset
             ev = sv + self._offset
@@ -236,14 +253,36 @@ class GroupTimeSeriesSplit:
                 train_mask = df['ts'] <= sv
             else:  # rolling
                 train_start = sv - self._train_offset
-                train_mask = (df['ts'] > train_start) & (df['ts'] <= sv)
+                train_mask = (df['ts'] >= train_start) & (df['ts'] <= sv)
 
-            test_mask = (df['ts'] > sv) & (df['ts'] <= ev)
+            val_mask = (df['ts'] > sv) & (df['ts'] <= ev)
 
             train_idx = df.loc[train_mask, '_idx'].tolist()
-            test_idx = df.loc[test_mask, '_idx'].tolist()
+            val_idx = df.loc[val_mask, '_idx'].tolist()
 
-            yield train_idx, test_idx
+            # Skip folds with insufficient training data
+            if len(train_idx) < self._min_train_samples:
+                warnings.warn(
+                    f"Skipping fold {k + 1} for group {group_name}: "
+                    f"Only {len(train_idx)} training samples (minimum {self._min_train_samples} required)"
+                )
+                continue
+
+            # Skip folds where training set is smaller than validation set
+            if len(train_idx) < len(val_idx):
+                warnings.warn(
+                    f"Skipping fold {k + 1} for group {group_name}: "
+                    f"Training samples ({len(train_idx)}) < validation samples ({len(val_idx)})."
+                )
+                continue
+
+            yield SplitIndices(
+                train_idx=train_idx,
+                val_idx=val_idx,
+                test_idx=None,
+                group=group_name
+            )
+
 
     def split(
         self,
@@ -251,7 +290,7 @@ class GroupTimeSeriesSplit:
         y: Optional[pd.Series],
         groups: pd.Series,
         timestamps: pd.Series
-    ) -> Generator[SplitIndices, None, None]:
+    ) -> Dict[str, SplitResult]:
         """
         Generate time-series splits preserving group structure.
 
@@ -267,39 +306,17 @@ class GroupTimeSeriesSplit:
         timestamps : pd.Series
             Timestamps for each sample. Must be the same length as X/y/groups.
 
-        Yields
-        ------
-        SplitIndices
-            Dataclass containing train/validation/test indices.
-            The splits are yielded in the following order:
-            1. All validation folds (if val_folds > 0)
-            2. All test folds (if test_folds > 0)
-
-            For each group, validation folds are ordered from oldest to most recent,
-            followed by test folds (if any).
+        Returns
+        -------
+        Dict[str, SplitResult]
+            Dictionary where keys are group names and values are SplitResult objects
+            containing train-test split and validation splits for each group.
 
         Raises
         ------
         ValueError
             If groups or timestamps are not provided, or if the time range
             is insufficient for the requested splits.
-
-        Examples
-        --------
-        Basic usage:
-        >>> cv = GroupTimeSeriesSplit(val_folds=2, test_folds=1, interval='7d')
-        >>> for split in cv.split(X, y, groups, timestamps):
-        >>>     if split.val_idx is not None:
-        >>>         print(f"Validation fold: {len(split.train_idx)} train, {len(split.val_idx)} validation")
-        >>>     else:
-        >>>         print(f"Test fold: {len(split.train_idx)} train, {len(split.test_idx)} test")
-
-        Working with multiple groups:
-        >>> cv = GroupTimeSeriesSplit(val_folds=1, interval='5d')
-        >>> for split in cv.split(X, y, groups, timestamps):
-        >>>     # Each split corresponds to one group
-        >>>     group_id = groups.iloc[split.train_idx[0]] if split.train_idx else groups.iloc[split.val_idx[0]]
-        >>>     print(f"Group {group_id}: {len(split.train_idx)} train, {len(split.val_idx)} validation")
         """
         if groups is None or timestamps is None:
             raise ValueError("groups and timestamps must be provided")
@@ -311,28 +328,48 @@ class GroupTimeSeriesSplit:
             'ts': timestamps.values
         })
 
-        for _, gdf in df.groupby('group'):
+        result = {}
+
+        for group_name, gdf in df.groupby('group'):
             gdf = gdf.sort_values('ts').reset_index(drop=True)
+            group_result = SplitResult(group=group_name)
+
+            # Handle test data if test_interval is specified
+            train_val_df = gdf
+            if self._test_offset:
+                test_start = gdf['ts'].iloc[-1] - self._test_offset
+                test_mask = gdf['ts'] > test_start
+                test_df = gdf[test_mask]
+                train_val_df = gdf[~test_mask]
+
+                # Add test split
+                if len(test_df) > 0:
+                    group_result.train_test_split = SplitIndices(
+                        train_idx=train_val_df['_idx'].tolist(),
+                        val_idx=None,
+                        test_idx=test_df['_idx'].tolist(),
+                        group=group_name
+                    )
+
+            # Validate time range for this group
+            self._validate_time_range(gdf['ts'])
 
             # Generate validation folds
-            if self._val_folds > 0:
-                start_val = self.get_timestamp_split(gdf['ts'], self._val_folds + self._test_folds)
-                for train_idx, val_idx in self._get_fold_indices(gdf, start_val, self._val_folds):
-                    yield SplitIndices(
-                        train_idx=train_idx,
-                        val_idx=val_idx,
-                        test_idx=None
-                    )
+            if self._val_folds > 0 and len(train_val_df) > 0:
+                # Calculate start point for validation folds
+                # We need to ensure we have enough data for all folds
+                total_val_range = self._offset * self._val_folds
+                start_val = train_val_df['ts'].iloc[-1] - total_val_range
 
-            # Generate test folds
-            if self._test_folds > 0:
-                start_test = self.get_timestamp_split(gdf['ts'], self._test_folds)
-                for train_idx, test_idx in self._get_fold_indices(gdf, start_test, self._test_folds):
-                    yield SplitIndices(
-                        train_idx=train_idx,
-                        val_idx=None,
-                        test_idx=test_idx
-                    )
+                # Generate folds
+                validation_splits = list(self._get_fold_indices(
+                    train_val_df, start_val, self._val_folds, group_name
+                ))
+                group_result.validation_splits = validation_splits
+
+            result[group_name] = group_result
+
+        return result
 
     def plot_split(
         self, y: pd.Series,
