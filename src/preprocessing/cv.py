@@ -4,6 +4,7 @@ from collections.abc import Generator
 from typing import Literal, Optional, Dict, List, Iterator, Union
 
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 
 
@@ -283,7 +284,6 @@ class GroupTimeSeriesSplit:
                 group=group_name
             )
 
-
     def split(
         self,
         X: Optional[pd.DataFrame],
@@ -372,130 +372,548 @@ class GroupTimeSeriesSplit:
         return result
 
     def plot_split(
-        self, y: pd.Series,
-        groups: pd.Series,
-        group_name: str,
-        timestamps: pd.Series,
-        y_title: str
-    ):
+        self,
+        y: Optional[pd.Series] = None,
+        groups: Optional[pd.Series] = None,
+        group_name: Optional[str] = None,
+        timestamps: Optional[pd.Series] = None,
+        y_title: str = "Value",
+        title: Optional[str] = None,
+        theme: Literal["dark", "light"] = "dark",
+        height: int = 700,
+        width: int = 1200
+    ) -> go.Figure:
         """
-        Visualize splits for a specific group.
+        Visualize time series cross-validation splits for different groups.
+
+        This method generates an interactive plot showing train, validation, and test
+        splits for time series cross-validation. It supports multiple groups and provides
+        a dropdown menu to switch between them.
 
         Parameters
         ----------
-        y : pd.Series
-            Target variable for visualization. Used for plotting values.
+        y : pd.Series, optional
+            Target variable values. If not provided, sequential values will be used.
         groups : pd.Series
-            Group labels for each sample. Used to filter data for the specific group.
-        group_name : str
-            Specific group to visualize. Must be a value present in groups.
+            Group labels for each sample. Must be the same length as timestamps.
+        group_name : str, optional
+            Specific group to display initially. If not provided, the first group is used.
         timestamps : pd.Series
-            Timestamps for each sample. Used for the x-axis of the plot.
-        y_title : str
-            Y-axis title for the plot.
+            Timestamps for each sample. Must be the same length as groups.
+        y_title : str, default="Value"
+            Title for the Y-axis.
+        title : str, optional
+            Plot title. If not provided, a default title will be generated.
+        theme : {"dark", "light"}, default="dark"
+            Color theme for the plot.
+        height : int, default=700
+            Plot height in pixels.
+        width : int, default=1200
+            Plot width in pixels.
 
         Returns
         -------
         go.Figure
-            Plotly figure object with visualization of the splits.
-            The plot includes:
-            - Time series data for the specified group
-            - Vertical lines marking validation and test period starts
-            - Annotations for each fold's train and validation/test periods
-            - Different colors for validation and test folds
+            Plotly Figure object with the visualization.
 
         Examples
         --------
-        >>> fig = cv.plot_split(y, groups, 'group_A', timestamps, 'Sales')
+        >>> cv = GroupTimeSeriesSplit(val_folds=3, test_interval='30d')
+        >>> fig = cv.plot_split(
+        ...     y=target_series,
+        ...     groups=group_series,
+        ...     timestamps=timestamp_series,
+        ...     group_name='AAPL',
+        ...     title='Stock Price CV Splits',
+        ...     theme='dark'
+        ... )
         >>> fig.show()
-
-        Saving to file:
-        >>> fig = cv.plot_split(y, groups, 'group_B', timestamps, 'Revenue')
-        >>> fig.write_image('split_visualization.png')
         """
-        y_group          = y[groups == group_name]
-        timestamps_group = timestamps[groups == group_name]
+        # Set theme colors (dark theme by default)
+        if theme == "dark":
+            bg_color = '#121212'
+            text_color = 'white'
+            grid_color = 'rgba(255, 255, 255, 0.1)'
+            train_color = '#1f77b4'
+            val_color = '#ff7f0e'
+            test_color = '#d62728'
+            line_color = '#ffffff'
+            dropdown_bg = '#2c2c2c'
+            dropdown_text = 'white'
+            active_bg = '#404040'
+            hover_bg = '#3a5bb8'
+            divider_color = 'rgba(255, 255, 255, 0.3)'
+            crosshair_color = 'rgba(255, 255, 255, 0.5)'
+        else:
+            bg_color = 'white'
+            text_color = 'black'
+            grid_color = 'rgba(0, 0, 0, 0.1)'
+            train_color = '#1f77b4'
+            val_color = '#ff7f0e'
+            test_color = '#d62728'
+            line_color = '#000000'
+            dropdown_bg = '#f0f0f0'
+            dropdown_text = 'black'
+            active_bg = '#d0d0d0'
+            hover_bg = '#3a5bb8'
+            divider_color = 'rgba(0, 0, 0, 0.3)'
+            crosshair_color = 'rgba(0, 0, 0, 0.5)'
 
+        # Convert timestamps to Series if it's a DatetimeIndex
+        if isinstance(timestamps, pd.DatetimeIndex):
+            timestamps = pd.Series(timestamps)
+
+        # Validate inputs
+        if groups is None or timestamps is None:
+            raise ValueError("groups and timestamps must be provided")
+
+        # Get splits for all groups
+        splits_dict = self.split(X=None, y=None, groups=groups, timestamps=timestamps)
+
+        # Calculate global y range if y is provided
+        if y is not None:
+            global_y_min = y.min()
+            global_y_max = y.max()
+            global_y_range = global_y_max - global_y_min
+        else:
+            # Use index-based values if y is not provided
+            global_y_min = 0
+            global_y_max = len(timestamps) - 1
+            global_y_range = global_y_max - global_y_min
+
+        # Determine which group to display initially
+        if group_name is None:
+            group_name = list(splits_dict.keys())[0]
+
+        if group_name not in splits_dict:
+            raise ValueError(f"Group '{group_name}' not found in the split results")
+
+        # Create a mapping from global index to group-specific index
+        global_to_local_idx = {}
+        group_y_ranges = {}
+        for group in splits_dict.keys():
+            group_mask = groups == group
+            group_indices = groups[group_mask].index
+            global_to_local_idx[group] = {global_idx: local_idx for local_idx, global_idx in enumerate(group_indices)}
+
+            # Calculate group-specific y range
+            if y is not None:
+                group_y = y[group_mask]
+                group_y_min = group_y.min()
+                group_y_max = group_y.max()
+                group_y_range = group_y_max - group_y_min
+            else:
+                group_y_min = 0
+                group_y_max = len(group_indices) - 1
+                group_y_range = group_y_max - group_y_min
+
+            group_y_ranges[group] = (group_y_min, group_y_max, group_y_range)
+
+        # Create plot
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=timestamps_group,
-            y=y_group,
-            name=group_name,
-            yaxis="y1",
-        ))
+
+        # Add traces for all groups but make them invisible initially
+        all_groups = list(splits_dict.keys())
+        colors = px.colors.qualitative.Plotly
+
+        for i, group in enumerate(all_groups):
+            group_mask = groups == group
+            group_timestamps = timestamps[group_mask]
+
+            if y is not None:
+                group_y = y[group_mask]
+            else:
+                group_y = pd.Series(range(len(group_timestamps)), index=group_timestamps.index)
+
+            # Sort by timestamp
+            sorted_idx = group_timestamps.argsort()
+            group_timestamps = group_timestamps.iloc[sorted_idx]
+            group_y = group_y.iloc[sorted_idx]
+
+            # Get group-specific y range
+            group_y_min, group_y_max, group_y_range = group_y_ranges[group]
+
+            # Add main trace for this group
+            fig.add_trace(go.Scatter(
+                x=group_timestamps,
+                y=group_y,
+                mode='lines+markers',
+                name=group,
+                line=dict(color=colors[i % len(colors)], width=2),
+                marker=dict(size=4),
+                visible=(group == group_name),
+                hovertemplate=(
+                    '<b>Group</b>: %{text}<br>'
+                    '<b>Date</b>: %{x}<br>'
+                    '<b>Value</b>: %{y:.2f}<br>'
+                    '<extra></extra>'
+                ),
+                text=[group] * len(group_timestamps)
+            ))
+
+            # Get split results for this group
+            group_result = splits_dict[group]
+
+            # Calculate the minimum time interval between data points
+            if len(group_timestamps) > 1:
+                time_diffs = group_timestamps.sort_values().diff().dropna()
+                min_interval = time_diffs.min()
+            else:
+                min_interval = pd.Timedelta(days=1)
+
+            # Calculate total number of folds
+            total_val_folds = len(group_result.validation_splits)
+            has_test = group_result.train_test_split and group_result.train_test_split.test_idx
+
+            # Add test split if exists
+            if has_test:
+                test_idx = group_result.train_test_split.test_idx
+                # Convert global indices to group-specific indices
+                test_idx_local = [global_to_local_idx[group][idx] for idx in test_idx if idx in global_to_local_idx[group]]
+                test_timestamps = group_timestamps.iloc[test_idx_local]
+                test_start = test_timestamps.min()
+                test_end = test_timestamps.max() + min_interval
+
+                # Add test rectangle
+                fig.add_trace(go.Scatter(
+                    x=[test_start, test_start, test_end, test_end, test_start],
+                    y=[group_y_min, group_y_max, group_y_max, group_y_min, group_y_min],
+                    fill="toself",
+                    fillcolor=test_color,
+                    opacity=0.2,
+                    line=dict(color=test_color, width=2),
+                    mode="lines",
+                    showlegend=False,
+                    hoverinfo="skip",
+                    visible=(group == group_name)
+                ))
+
+                # Add rotated test annotation
+                test_center_x = test_start + (test_end - test_start) / 2
+                test_center_y = group_y_min + group_y_range / 2
+
+                # Calculate font size based on test duration
+                test_duration = (test_end - test_start).total_seconds()
+                font_size = min(36, max(16, int(test_duration / 3600)))
+
+                fig.add_trace(go.Scatter(
+                    x=[test_center_x],
+                    y=[test_center_y],
+                    mode="text",
+                    text=["TEST"],
+                    textfont=dict(size=font_size, color=test_color, family="Arial Black"),
+                    showlegend=False,
+                    hoverinfo="skip",
+                    visible=(group == group_name)
+                ))
+
+                # Add dividing lines around test rectangle
+                fig.add_trace(go.Scatter(
+                    x=[test_start, test_start],
+                    y=[group_y_min, group_y_max],
+                    mode="lines",
+                    line=dict(color=divider_color, width=1, dash="solid"),
+                    showlegend=False,
+                    hoverinfo="skip",
+                    visible=(group == group_name)
+                ))
+                fig.add_trace(go.Scatter(
+                    x=[test_end, test_end],
+                    y=[group_y_min, group_y_max],
+                    mode="lines",
+                    line=dict(color=divider_color, width=1, dash="solid"),
+                    showlegend=False,
+                    hoverinfo="skip",
+                    visible=(group == group_name)
+                ))
+
+            # Add validation and training folds
+            if total_val_folds > 0:
+                fold_height = group_y_range / total_val_folds
+
+                for i, split in enumerate(group_result.validation_splits):
+                    if split.val_idx:
+                        # Convert global indices to group-specific indices
+                        val_idx_local = [global_to_local_idx[group][idx] for idx in split.val_idx if idx in global_to_local_idx[group]]
+                        val_timestamps = group_timestamps.iloc[val_idx_local]
+                        val_start = val_timestamps.min()
+                        val_end = val_timestamps.max() + min_interval
+
+                        # Calculate vertical position
+                        fold_y_min = group_y_min + i * fold_height
+                        fold_y_max = fold_y_min + fold_height
+                        fold_center_y = fold_y_min + fold_height / 2
+
+                        # Add training rectangle
+                        if split.train_idx:
+                            # Convert global indices to group-specific indices
+                            train_idx_local = [global_to_local_idx[group][idx] for idx in split.train_idx if idx in global_to_local_idx[group]]
+                            train_timestamps = group_timestamps.iloc[train_idx_local]
+                            train_start = train_timestamps.min()
+                            train_end = train_timestamps.max() + min_interval
+
+                            fig.add_trace(go.Scatter(
+                                x=[train_start, train_start, train_end, train_end, train_start],
+                                y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
+                                fill="toself",
+                                fillcolor=train_color,
+                                opacity=0.2,
+                                line=dict(color=train_color, width=2),
+                                mode="lines",
+                                showlegend=False,
+                                hoverinfo="skip",
+                                visible=(group == group_name)
+                            ))
+
+                            # Add training annotation
+                            train_center_x = train_start + (train_end - train_start) / 2
+                            font_size = min(24, max(14, int(fold_height / 10)))
+
+                            fig.add_trace(go.Scatter(
+                                x=[train_center_x],
+                                y=[fold_center_y],
+                                mode="text",
+                                text=[f"TRAIN {i+1}"],
+                                textfont=dict(size=font_size, color=train_color, family="Arial Black"),
+                                showlegend=False,
+                                hoverinfo="skip",
+                                visible=(group == group_name)
+                            ))
+
+                            # Add dividing lines around training rectangle
+                            fig.add_trace(go.Scatter(
+                                x=[train_start, train_start],
+                                y=[fold_y_min, fold_y_max],
+                                mode="lines",
+                                line=dict(color=divider_color, width=1, dash="solid"),
+                                showlegend=False,
+                                hoverinfo="skip",
+                                visible=(group == group_name)
+                            ))
+                            fig.add_trace(go.Scatter(
+                                x=[train_end, train_end],
+                                y=[fold_y_min, fold_y_max],
+                                mode="lines",
+                                line=dict(color=divider_color, width=1, dash="solid"),
+                                showlegend=False,
+                                hoverinfo="skip",
+                                visible=(group == group_name)
+                            ))
+
+                        # Add validation rectangle
+                        fig.add_trace(go.Scatter(
+                            x=[val_start, val_start, val_end, val_end, val_start],
+                            y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
+                            fill="toself",
+                            fillcolor=val_color,
+                            opacity=0.2,
+                            line=dict(color=val_color, width=2),
+                            mode="lines",
+                            showlegend=False,
+                            hoverinfo="skip",
+                            visible=(group == group_name)
+                        ))
+
+                        # Add validation annotation
+                        val_center_x = val_start + (val_end - val_start) / 2
+                        font_size = min(24, max(14, int(fold_height / 10)))
+
+                        fig.add_trace(go.Scatter(
+                            x=[val_center_x],
+                            y=[fold_center_y],
+                            mode="text",
+                            text=[f"VAL {i+1}"],
+                            textfont=dict(size=font_size, color=val_color, family="Arial Black"),
+                            showlegend=False,
+                            hoverinfo="skip",
+                            visible=(group == group_name)
+                        ))
+
+                        # Add dividing lines around validation rectangle
+                        fig.add_trace(go.Scatter(
+                            x=[val_start, val_start],
+                            y=[fold_y_min, fold_y_max],
+                            mode="lines",
+                            line=dict(color=divider_color, width=1, dash="solid"),
+                            showlegend=False,
+                            hoverinfo="skip",
+                            visible=(group == group_name)
+                        ))
+                        fig.add_trace(go.Scatter(
+                            x=[val_end, val_end],
+                            y=[fold_y_min, fold_y_max],
+                            mode="lines",
+                            line=dict(color=divider_color, width=1, dash="solid"),
+                            showlegend=False,
+                            hoverinfo="skip",
+                            visible=(group == group_name)
+                        ))
+
+        # Set title
+        if title is None:
+            title = f"<b>Time Series Cross-Validation Split</b><br><span style='font-size:14px'>Group: {group_name}</span>"
+
+        # Create dropdown menu
+        dropdown_buttons = []
+        for group in all_groups:
+            # Create visibility list for this group
+            visibility = [False] * len(fig.data)
+
+            # Find all traces that belong to this group
+            for i, trace in enumerate(fig.data):
+                if trace.name == group:
+                    visibility[i] = True
+                elif hasattr(trace, 'visible') and trace.visible == (group == group_name):
+                    visibility[i] = True
+
+            # Create button for this group
+            dropdown_buttons.append(
+                dict(
+                    label=group,
+                    method="update",
+                    args=[
+                        {"visible": visibility},
+                        {
+                            "title": f"<b>Time Series Cross-Validation Split</b><br><span style='font-size:14px'>Group: {group}</span>",
+                            "yaxis.range": [
+                                group_y_ranges[group][0] - group_y_ranges[group][2] * 0.05,
+                                group_y_ranges[group][1] + group_y_ranges[group][2] * 0.05
+                            ]
+                        }
+                    ]
+                )
+            )
+
+        # Update layout with ROC-AUC inspired styling
         fig.update_layout(
-            title=f"<b>{group_name}<b>",
-            title_x=0.5,
-            xaxis=dict(title="<b>Date & Time<b>"),
-            yaxis=dict(
-                title=f"<b>{y_title}<b>",
-                side="left",
-                showgrid=False
+            title=dict(
+                text=title,
+                x=0.5,
+                xanchor='center',
+                font=dict(size=20, color=text_color)
             ),
-            height=600,
-            template="plotly_dark"
+            xaxis=dict(
+                title="<b>Date & Time</b>",
+                gridcolor=grid_color,
+                title_font=dict(size=16, color=text_color),
+                tickfont=dict(color=text_color),
+                showline=False,
+                zeroline=False,
+                showspikes=True,
+                spikecolor=crosshair_color,
+                spikethickness=1,
+                spikedash="dot",
+                spikemode="across"
+            ),
+            yaxis=dict(
+                title=f"<b>{y_title}</b>",
+                gridcolor=grid_color,
+                title_font=dict(size=16, color=text_color),
+                tickfont=dict(color=text_color),
+                range=[
+                    group_y_ranges[group_name][0] - group_y_ranges[group_name][2] * 0.05,
+                    group_y_ranges[group_name][1] + group_y_ranges[group_name][2] * 0.05
+                ],
+                showline=True,
+                linecolor=grid_color,
+                zeroline=False,
+                showspikes=True,
+                spikecolor=crosshair_color,
+                spikethickness=1,
+                spikedash="dot",
+                spikemode="across"
+            ),
+            hovermode='x unified',
+            plot_bgcolor=bg_color,
+            paper_bgcolor=bg_color,
+            height=height,
+            width=width,
+            margin=dict(l=80, r=50, t=100, b=80),
+            font=dict(family="Arial", color=text_color),
+            showlegend=False,
+            updatemenus=[
+                dict(
+                    buttons=dropdown_buttons,
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x=0.02,
+                    xanchor="left",
+                    y=0.98,
+                    yanchor="top",
+                    bgcolor=dropdown_bg,
+                    bordercolor=text_color,
+                    borderwidth=1,
+                    font=dict(color=dropdown_text, size=12),
+                    active=all_groups.index(group_name)
+                )
+            ]
         )
 
-        # Show validation sample start
-        q1 = self.get_timestamp_split(timestamps_group, steps=self._val_folds + self._test_folds)
-        fig.add_vline(x=q1, line=dict(color="#2ca02c"))
-        fig.add_annotation(
-            x=q1, y=0.5, showarrow=False,
-            yref="paper", yanchor="middle", xshift=10,
-            text="validation", textangle=-90, font=dict(size=16)
+        # Update layout with ROC-AUC inspired styling
+        fig.update_layout(
+            title=dict(
+                text=title,
+                x=0.5,
+                xanchor='center',
+                font=dict(size=20, color=text_color)
+            ),
+            xaxis=dict(
+                title="<b>Date & Time</b>",
+                gridcolor=grid_color,
+                title_font=dict(size=16, color=text_color),
+                tickfont=dict(color=text_color),
+                showline=False,
+                zeroline=False,
+                showspikes=True,
+                spikecolor=crosshair_color,
+                spikethickness=1,
+                spikedash="dot",
+                spikemode="across"
+            ),
+            yaxis=dict(
+                title=f"<b>{y_title}</b>",
+                gridcolor=grid_color,
+                title_font=dict(size=16, color=text_color),
+                tickfont=dict(color=text_color),
+                range=[
+                    group_y_ranges[group_name][0] - group_y_ranges[group_name][2] * 0.05,
+                    group_y_ranges[group_name][1] + group_y_ranges[group_name][2] * 0.05
+                ],
+                showline=True,
+                linecolor=grid_color,
+                zeroline=False,
+                showspikes=True,
+                spikecolor=crosshair_color,
+                spikethickness=1,
+                spikedash="dot",
+                spikemode="across"
+            ),
+            hovermode='x unified',
+            plot_bgcolor=bg_color,
+            paper_bgcolor=bg_color,
+            height=height,
+            width=width,
+            margin=dict(l=80, r=50, t=100, b=80),
+            font=dict(family="Arial", color=text_color),
+            showlegend=False,
+            updatemenus=[
+                dict(
+                    buttons=dropdown_buttons,
+                    direction="down",
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x=0.02,
+                    xanchor="left",
+                    y=0.98,
+                    yanchor="top",
+                    bgcolor=dropdown_bg,
+                    bordercolor=text_color,
+                    borderwidth=1,
+                    font=dict(color=dropdown_text, size=12),
+                    active=all_groups.index(group_name)
+                )
+            ]
         )
-
-        # Show test sample start
-        if self._test_folds:
-            q2 = self.get_timestamp_split(timestamps_group, steps=self._test_folds)
-            fig.add_vline(x=q2, line=dict(color="#ff7f0e"))
-            fig.add_annotation(
-                x=q2, y=0.5, showarrow=False,
-                yref="paper", yanchor="middle", xshift=10,
-                text="test", textangle=-90, font=dict(size=16)
-            )
-
-        groups = pd.Series([group_name] * len(timestamps_group))
-        train_val, train_test = self.split(X=None, y=None, groups=groups, timestamps=timestamps_group)
-
-        for ind, (train_idx, val_idx) in enumerate(train_val, start=0):
-            train_last = timestamps_group.iloc[train_idx].max()
-            val_last   = timestamps_group.iloc[val_idx].max()
-
-            fig.add_vline(x=train_last, line=dict(color="#2ca02c", dash="dash"), opacity=0.2, name=group_name)
-            fig.add_vline(x=val_last, line=dict(color="#2ca02c", dash="dash"), opacity=0.2, name=group_name)
-            fig.add_annotation(
-                x=train_last, y=1, showarrow=False,
-                yref="paper", yanchor="bottom", xshift=-10,
-                text=f"Train {ind % self._val_folds + 1}", textangle=-90, font=dict(size=12, color="#2ca02c"),
-                name=group_name
-            )
-            fig.add_annotation(
-                x=val_last, y=1, showarrow=False,
-                yref="paper", yanchor="top", xshift=-10,
-                text=f"Val {ind % self._val_folds + 1}", textangle=-90, font=dict(size=12, color="#2ca02c"),
-                name=group_name
-            )
-
-        for ind, (train_idx, val_idx) in enumerate(train_test, start=0):
-            train_last = timestamps_group.iloc[train_idx].max()
-            val_last   = timestamps_group.iloc[val_idx].max()
-
-            fig.add_vline(x=train_last, line=dict(color="#ff7f0e", dash="dash"), opacity=0.2, name=group_name)
-            fig.add_vline(x=val_last, line=dict(color="#ff7f0e", dash="dash"), opacity=0.2, name=group_name)
-            # Аннотация «прилипает» к низу графика
-            fig.add_annotation(
-                x=train_last, y=1, showarrow=False,
-                yref="paper", yanchor="bottom", xshift=-10,
-                text=f"Train {ind % self._test_folds + 1}", textangle=-90, font=dict(size=12, color="#ff7f0e"),
-                name=group_name
-            )
-            # Аннотация «прилипает» к низу графика
-            fig.add_annotation(
-                x=val_last, y=1, showarrow=False,
-                yref="paper", yanchor="top", xshift=-10,
-                text=f"Test {ind % self._test_folds + 1}", textangle=-90, font=dict(size=12, color="#ff7f0e"),
-                name=group_name
-            )
 
         return fig
