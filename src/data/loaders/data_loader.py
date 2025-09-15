@@ -75,13 +75,15 @@ class DataLoader:
             If source is not a valid file or directory
         """
         source_path = Path(source)
+        project_root = Path(sys.path[0]).parent
+        full_path = project_root / source_path
 
-        if source_path.is_file():
-            return [self._load_single_file(source_path)]
-        elif source_path.is_dir():
-            return self._load_from_directory(source_path)
+        if full_path.is_file():
+            return [self._load_single_file(full_path)]
+        elif full_path.is_dir():
+            return self._load_from_directory(full_path)
         else:
-            raise ValueError(f"Source {source} is not a valid file or directory")
+            raise ValueError(f"Source {full_path} is not a valid file or directory")
 
     def _load_from_directory(self, directory: Path) -> List[DataFrame]:
         """
