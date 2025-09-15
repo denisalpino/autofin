@@ -1,6 +1,7 @@
 import os, sys
 import re
 from pathlib import Path
+from types import NoneType
 from typing import List
 
 from pandas import (
@@ -40,7 +41,7 @@ class DataLoader:
         elif isinstance(config, DataLoaderConfig):
             # Assign configuration
             self.config = config
-        elif isinstance(config, None):
+        elif isinstance(config, NoneType):
             # Setting up the basic configuration
             self.config = DataLoaderConfig()
         else:
