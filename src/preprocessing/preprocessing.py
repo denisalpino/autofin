@@ -471,21 +471,3 @@ def training_pipe(
 
         return metrics, models, Xs, ys, scalers, preds
 
-
-
-def get_good_timestamps(
-        merged_df: pd.DataFrame,
-        ts_col: str,
-        ticker_col: str
-) -> pd.Index:
-    """Returns the Index of timestamps in which all tickers are present."""
-    # Count how many unique tickers there are on each timestamp
-    counts = (
-        merged_df
-        .groupby(ts_col)[ticker_col]
-        .nunique()
-    )
-    total_tickers = merged_df[ticker_col].nunique()
-    # Keep only those timestamps with full coverage
-    good_ts = counts[counts == total_tickers].index
-    return good_ts
