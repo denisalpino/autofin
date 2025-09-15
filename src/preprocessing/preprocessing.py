@@ -30,11 +30,6 @@ from src.data.splitters.cross_validation import GroupTimeSeriesSplit
 from preprocessing.data_loading import load_data, align_by_timestamps
 from src.preprocessing.feature_engineering import create_features, create_direction_target, create_price_target
 
-scaling = {
-    "method": "minmax",
-    "non_scalable_cols": {"ticker"},
-    "include_target": True
-}
 
 NON_SCALABLE_COLS = {
     "target", "ticker", "minute_sin", "minute_cos",
