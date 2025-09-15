@@ -26,9 +26,9 @@ from typing import (
     Iterable, Sequence, Tuple
 )
 
-from preprocessing.cv import GroupTimeSeriesSplit
+from src.data.splitters.cross_validation import GroupTimeSeriesSplit
 from preprocessing.data_loading import load_data, align_by_timestamps
-from src.feature_engineering import create_features, create_direction_target, create_price_target
+from src.preprocessing.feature_engineering import create_features, create_direction_target, create_price_target
 
 scaling = {
     "method": "minmax",
@@ -147,14 +147,6 @@ CV_CONFIG = {
     "interval": "1d",
     "window": "expanding"
 }
-
-@dataclass
-class Dataset:
-    raw_features: pd.DataFrame
-    train:     Optional[NDArray] = None
-    val:       Optional[NDArray] = None
-    test:      Optional[NDArray] = None
-    cv_splits: Optional[Tuple]   = None
 
 
 def pipeline(
@@ -598,13 +590,6 @@ def training_pipe(
         return metrics, models, Xs, ys, scalers, preds
 
 
-def get_scalable_cols(columns: pd.Index, non_scalable_cols: Iterable) -> List[str]:
-    scalable = []
-    for col in columns:
-        if not any([col.startswith(nonsc) for nonsc in non_scalable_cols]):
-            scalable.append(col)
-    return scalable
-
 
 def get_good_timestamps(
         merged_df: pd.DataFrame,
@@ -622,28 +607,3 @@ def get_good_timestamps(
     # Keep only those timestamps with full coverage
     good_ts = counts[counts == total_tickers].index
     return good_ts
-
-
-def train_val_test_split(
-        features: pd.DataFrame,
-        split: Sequence[int]
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    # Validate params
-    if (curr_sum := sum(split)) != 100:
-        raise ValueError(
-            f"All elements of the `split` sequence must summing to 1, when current sum is {curr_sum}.")
-
-    # Convert to shares
-    train_size, val_size, test_size = [i / 100 for i in split]
-
-    # Calaculate number of training and validating samples
-    num_trainable = int(len(features) * train_size)
-    num_validatable = int((len(features) - num_trainable)
-                          * (val_size / (val_size + test_size)))
-
-    # Make slices for each set
-    trainable = features.iloc[:num_trainable]
-    validatable = features.iloc[num_trainable:num_trainable + num_validatable]
-    testable = features.iloc[num_trainable + num_validatable:]
-
-    return trainable, validatable, testable
