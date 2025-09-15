@@ -137,11 +137,11 @@ class DataLoader:
         loader_func = self.loader_map[file_format]
         df = loader_func(file_path)
 
-        # Rename the columns according to the schema
-        df = self._rename_columns(df)
-
         # Checking the required fields
         self._validate_required_columns(df)
+
+        # Rename the columns according to the schema
+        df = self._rename_columns(df)
 
         # Add ticker
         df = self._add_ticker_column(df, file_path)
