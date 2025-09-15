@@ -31,19 +31,6 @@ from preprocessing.data_loading import load_data, align_by_timestamps
 from src.preprocessing.feature_engineering import create_features, create_direction_target, create_price_target
 
 
-NON_SCALABLE_COLS = {
-    "target", "ticker", "minute_sin", "minute_cos",
-    "day_sin", "day_cos", "day_of_week_sin", "day_of_week_cos",
-    "month_sin", "month_cos", "hour_sin", "hour_cos",
-    "direction"
-}
-
-SCALERS = {
-    "minmax": MinMaxScaler,
-    "standard": StandardScaler,
-    "robust": RobustScaler
-}
-
 DEFAULT_FUTURES_CONFIG = {
     "base_columns": {
         "open": "open",
