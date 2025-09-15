@@ -8,32 +8,39 @@ from src.features.calculators.lagging import get_lagging_features
 
 class FeatureBuilder:
     def __init__(self, config):
+        """
+        config: Configuration dictionary specifying which features to create
+            - base_columns: Dictionary mapping standard names to actual column names
+            - ohlc: Dictionary specifying which OHLC prices to include as features
+            - time_features: Dictionary specifying which time-based features to create
+            - returns: Dictionary configuring returns calculation
+            - indicators: Dictionary configuring technical indicator calculations
+            - lags: Dictionary specifying lag features to create
+        """
         self.config = config
 
     def build_features(self, df: DataFrame) -> DataFrame:
         """
-            Creates feature matrix based on configuration dictionary.
+        Creates feature matrix based on configuration dictionary.
 
-            Parameters
-            ---
-            df: Input DataFrame with raw financial data
-            self.config: Configuration dictionary specifying which features to create
-                - base_columns: Dictionary mapping standard names to actual column names
-                - ohlc: Dictionary specifying which OHLC prices to include as features
-                - time_features: Dictionary specifying which time-based features to create
-                - returns: Dictionary configuring returns calculation
-                - indicators: Dictionary configuring technical indicator calculations
-                - lags: Dictionary specifying lag features to create
+        Parameters
+        ---
+        df : DataFrame
+            Input DataFrame with raw financial data
 
-            Returns
-            ---
-            DataFrame: DataFrame with engineered features
+        Returns
+        ---
+        DataFrame:
+            DataFrame with engineered features
 
-            Raises
-            ---
-            KeyError: If required base_columns are missing from self.config
-            TypeError: If indicators configuration is not a dictionary
-            ValueError: If time_features are requested but no parameters are specified
+        Raises
+        ---
+        KeyError:
+            If required base_columns are missing from self.config
+        TypeError:
+            If indicators configuration is not a dictionary
+        ValueError:
+            If time_features are requested but no parameters are specified
         """
         df = df.copy()
         # Store original index to ensure proper alignment at the end
