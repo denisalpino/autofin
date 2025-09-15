@@ -1,4 +1,10 @@
+import os, sys
+
 from pandas import DataFrame, concat
+
+current_script_path = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_script_path)
+sys.path.insert(0, project_root)
 
 from src.features.calculators.indicators import calculate_indicator
 from src.features.calculators.returns import calculate_returns
