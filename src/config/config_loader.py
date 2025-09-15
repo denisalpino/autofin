@@ -1,7 +1,9 @@
-import os, sys
-import yaml
+import os
 from pathlib import Path
+import sys
 from typing import Dict, Any, Optional
+
+import yaml
 
 current_script_path = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_script_path)
@@ -12,25 +14,30 @@ from src.config.main_config import MainConfig
 
 def load_config(config_path: Optional[str] = None) -> MainConfig:
     """
-    Загружает конфигурацию из YAML файла, объединяя с настройками по умолчанию
+    Load configuration from YAML file with default fallback.
 
-    Parameters:
-    -----------
-    config_path : str, optional
-        Путь к YAML файлу с конфигурацией. Если не указан, используются настройки по умолчанию.
+    Parameters
+    ----------
+    config_path : Optional[str], default=None
+        Path to YAML configuration file
 
-    Returns:
-    --------
+    Returns
+    -------
     MainConfig
-        Загруженная конфигурация
+        Loaded configuration object
+
+    Raises
+    ------
+    FileNotFoundError
+        If specified config file does not exist
     """
-    # Создаем конфигурацию по умолчанию
+    # Creating a default configuration
     default_config = MainConfig()
 
     if config_path is None:
         return default_config
 
-    # Загружаем пользовательский конфиг из YAML
+    # Loading user config from YAML
     config_path = Path(config_path)
     if not config_path.exists():
         raise FileNotFoundError(f"Configuration file {config_path} not found")
@@ -41,27 +48,27 @@ def load_config(config_path: Optional[str] = None) -> MainConfig:
     if user_config is None:
         return default_config
 
-    # Рекурсивно обновляем конфигурацию по умолчанию пользовательскими настройками
+    # Recursively update the default configuration with user settings
     updated_config = _deep_update(default_config.model_dump(), user_config)
 
-    # Создаем объект конфигурации
+    # Create a configuration object
     return MainConfig.model_validate(updated_config)
 
 def _deep_update(default_dict: Dict[str, Any], user_dict: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Рекурсивно обновляет словарь по умолчанию пользовательскими значениями
+    Recursively update dictionary with user values.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     default_dict : Dict[str, Any]
-        Словарь с настройками по умолчанию
+        Dictionary with default values
     user_dict : Dict[str, Any]
-        Словарь с пользовательскими настройками
+        Dictionary with user values
 
-    Returns:
-    --------
+    Returns
+    -------
     Dict[str, Any]
-        Обновленный словарь
+        Updated dictionary
     """
     for key, value in user_dict.items():
         if (key in default_dict and
@@ -74,14 +81,14 @@ def _deep_update(default_dict: Dict[str, Any], user_dict: Dict[str, Any]) -> Dic
 
 def save_config(config: MainConfig, config_path: str) -> None:
     """
-    Сохраняет конфигурацию в YAML файл
+    Save configuration to YAML file.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     config : MainConfig
-        Конфигурация для сохранения
+        Configuration object to save
     config_path : str
-        Путь для сохранения файла
+        Path for saving configuration file
     """
     config_path = Path(config_path)
     with open(config_path, 'w', encoding='utf-8') as f:

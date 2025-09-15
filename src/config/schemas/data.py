@@ -1,20 +1,43 @@
+# TODO: Add note to the docs
+# All files must be in the same format, have the same structure, and read options
+
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Optional
+from typing import Optional, Dict
 
-from pandas import DataFrame
 from numpy.typing import NDArray
+from pandas import DataFrame
 from pydantic import BaseModel, Field
 
 
 class FileFormat(str, Enum):
+    """Supported file formats for data loading."""
     CSV = "csv"
     PARQUET = "parquet"
     EXCEL = "excel"
     JSON = "json"
 
 class DatasetSchema(BaseModel):
-    """Схема для описания и маппинга структуры набора данных"""
+    """
+    Schema for dataset column mapping.
+
+    Attributes
+    ----------
+    timestamps : str, default="timestamps"
+        Name of the timestamp column
+    open : str, default="open"
+        Name of the open price column
+    high : str, default="high"
+        Name of the high price column
+    low : str, default="low"
+        Name of the low price column
+    close : str, default="close"
+        Name of the close price column
+    adjclose : Optional[str], default=None
+        Name of the adjusted close price column
+    volume : Optional[str], default=None
+        Name of the volume column
+    """
     timestamps: str           = Field(default="timestamps")
     open:       str           = Field(default="open")
     high:       str           = Field(default="high")
@@ -25,10 +48,24 @@ class DatasetSchema(BaseModel):
 
 
 class DataLoaderConfig(BaseModel):
+    """
+    Configuration for data loader.
+
+    Attributes
+    ----------
+    mapping : DatasetSchema, default=DatasetSchema()
+        Column mapping schema
+    file_format : Optional[FileFormat], default=None
+        Force specific file format (autodetected if None)
+    read_options : Dict, default={}
+        Additional options for pandas read functions
+    ticker_pattern : str, default=r"^([^_]+)"
+        Regex pattern for extracting ticker from filename
+    """
     mapping:         DatasetSchema        = Field(default_factory=DatasetSchema)
-    file_format:     Optional[FileFormat] = Field(None, description="Формат файла (если не указан, будет определен автоматически)")
-    read_options:    Dict                 = Field(default_factory=dict, description="Параметры для чтения файлов")
-    ticker_pattern:  str                  = Field(r"^([^_]+)", description="regex pattern как извлекать тикер из имени файла")
+    file_format:     Optional[FileFormat] = Field(None, description="File format (autodetected if None)")
+    read_options:    Dict                 = Field(default_factory=dict, description="Options for pandas read functions")
+    ticker_pattern:  str                  = Field(r"^([^_]+)", description="Regex pattern to extract ticker from filename")
 
     # Настройка для использования значений перечислений
     class Config:
@@ -36,7 +73,7 @@ class DataLoaderConfig(BaseModel):
 
     @property
     def required_columns(self) -> set:
-        """Возвращает множество обязательных колонок"""
+        """Set of required column names."""
         return {
             self.mapping.timestamp_col,
             self.mapping.open_col,
@@ -45,10 +82,25 @@ class DataLoaderConfig(BaseModel):
             self.mapping.close_col
         }
 
-# Все файлы должны быть одного формата, иметь одинаковую структуру и опции чтения
 
 @dataclass
 class Dataset:
+    """
+    Container for processed dataset.
+
+    Attributes
+    ----------
+    raw_features : DataFrame
+        Raw loaded features
+    train : Optional[NDArray], default=None
+        Training data
+    val : Optional[NDArray], default=None
+        Validation data
+    test : Optional[NDArray], default=None
+        Test data
+    cv_splits : Optional[tuple], default=None
+        Cross-validation splits
+    """
     """Класс для хранения обработанных данных"""
     raw_features: DataFrame
     train: Optional[NDArray] = None
