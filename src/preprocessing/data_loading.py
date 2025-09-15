@@ -4,9 +4,9 @@ from typing import Optional, List
 
 
 def load_data(
-        file: Optional[str] = None,
-        dir: Optional[str] = None,
-        loader_config: dict = {}
+    file: Optional[str] = None,
+    dir: Optional[str] = None,
+    loader_config: dict = {}
 ) -> List[pd.DataFrame]:
     """
     Function for loading data from single file or all directory with assigning
@@ -27,15 +27,3 @@ def load_data(
     for df in dfs:
         df["ticker"] = pd.Categorical(df["ticker"])
     return dfs
-
-
-def align_by_timestamps(
-        dfs: list[pd.DataFrame],
-        ts_col: str
-) -> List[pd.DataFrame]:
-    """Filters an arbitrary DataFrame, leaving only timestamped rows from good_ts."""
-    merged = pd.concat(dfs, axis=0)
-    counts = merged.groupby(ts_col)["ticker"].nunique()
-    total = merged["ticker"].nunique()
-    good_ts = counts[counts == total].index
-    return [df[df[ts_col].isin(good_ts)].reset_index(drop=True) for df in dfs]
