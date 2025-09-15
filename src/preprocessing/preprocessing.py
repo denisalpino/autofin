@@ -31,14 +31,6 @@ from preprocessing.data_loading import load_data, align_by_timestamps
 from src.preprocessing.feature_engineering import create_features, create_direction_target, create_price_target
 
 
-CV_CONFIG = {
-    "val_folds": 5,
-    "test_folds": 0,
-    "interval": "1d",
-    "window": "expanding"
-}
-
-
 def pipeline(
     df: Optional[pd.DataFrame] = None,  # type: ignore
     file: Optional[str] = None,
