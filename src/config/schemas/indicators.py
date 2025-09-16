@@ -1,15 +1,9 @@
 from enum import Enum
+from typing import List, Literal
+
 from pydantic import BaseModel, Field
-from typing import Literal, List
 
-
-class PriceSource(str, Enum):
-    OPEN = "open"
-    HIGH = "high"
-    LOW = "low"
-    CLOSE = "close"
-    ADJCLOSE = "adjclose"
-    VOLUME = "volume"
+from .features import ColumnSource
 
 
 class MovingAverageType(str, Enum):
@@ -25,7 +19,7 @@ class IndicatorConfig(BaseModel):
 class RSIConfig(IndicatorConfig):
     """Relative Strength Index - momentum oscillator"""
     name: Literal["RSI"] = "RSI"
-    price: PriceSource = Field(default=PriceSource.CLOSE)
+    price: ColumnSource = Field(default=ColumnSource.CLOSE)
     window: int = Field(default=14, ge=1, le=100)
 
 class BBandsConfig(IndicatorConfig):
@@ -39,14 +33,14 @@ class BBandsConfig(IndicatorConfig):
 class MAConfig(IndicatorConfig):
     """Moving Average (including few kinds) - smooths price data"""
     name: Literal["MA"] = "MA"
-    price: PriceSource = Field(default=PriceSource.CLOSE)
+    price: ColumnSource = Field(default=ColumnSource.CLOSE)
     window: int = Field(default=14, ge=1, le=100)
     mamode: MovingAverageType = Field(default=MovingAverageType.EMA)
 
 class MACDConfig(IndicatorConfig):
     """Moving Average Convergence Divergence (including signal and histogram) Trend-following momentum indicator"""
     name: Literal["MACD"] = "MACD"
-    price: PriceSource = Field(default=PriceSource.CLOSE)
+    price: ColumnSource = Field(default=ColumnSource.CLOSE)
     short_window: int = Field(default=12, ge=1, le=100)
     long_window: int = Field(default=26, ge=1, le=100)
     signal_window: int = Field(default=9, ge=1, le=100)
@@ -106,7 +100,7 @@ class LowWConfig(IndicatorConfig):
 class PtoMAConfig(IndicatorConfig):
     """Differance between price and Moving Average"""
     name: Literal["PtoMA"] = "PtoMA"
-    price: PriceSource = Field(default=PriceSource.CLOSE)
+    price: ColumnSource = Field(default=ColumnSource.CLOSE)
     window: int = Field(default=20, ge=1, le=100)
     mamode: MovingAverageType = Field(default=MovingAverageType.EMA)
 

@@ -12,6 +12,14 @@ from src.config.schemas.indicators import IndicatorConfig
 from src.config.constants import BASE_INDICATORS
 
 
+class ColumnSource(str, Enum):
+    OPEN = "open"
+    HIGH = "high"
+    LOW = "low"
+    CLOSE = "close"
+    ADJCLOSE = "adjclose"
+    VOLUME = "volume"
+
 class TimeFeature(str, Enum):
     MINUTE    = "minute"
     HOUR      = "hour"
