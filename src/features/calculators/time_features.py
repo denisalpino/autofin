@@ -12,31 +12,31 @@ def create_time_features(
     month: bool = False
 ) -> DataFrame:
     """
-        Calculates cyclic time-features based on `cos` and `sin` functions.
+    Calculates cyclic time-features based on `cos` and `sin` functions.
 
-        Parameters
-        ---
-        timestamps : Series
-            Series containing datetime values
-        minute : bool, default=False
-            Whether to include minute-based features
-        hour : bool, default=False
-            Whether to include hour-based features
-        day : bool, default=False
-            Whether to include day-of-month features
-        day_of_week : bool, default=False
-            Whether to include day-of-week features
-        month : bool, default=False
-            Whether to include month features
+    Parameters
+    ---
+    timestamps : Series
+        Series containing datetime values
+    minute : bool, default=False
+        Whether to include minute-based features
+    hour : bool, default=False
+        Whether to include hour-based features
+    day : bool, default=False
+        Whether to include day-of-month features
+    day_of_week : bool, default=False
+        Whether to include day-of-week features
+    month : bool, default=False
+        Whether to include month features
 
-        Returns
-        ---
-        DataFrame :
-            DataFrame with cyclic time features encoded as sin/cos pairs
+    Returns
+    ---
+    DataFrame :
+        DataFrame with cyclic time features encoded as sin/cos pairs
 
-        Raises
-        ---
-        ValueError: If no time features are specified for encoding
+    Raises
+    ---
+    ValueError: If no time features are specified for encoding
     """
     time_features = DataFrame()
 
