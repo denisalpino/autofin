@@ -1,114 +1,56 @@
-from pydantic import BaseModel
-from typing import Optional, Dict, List
+import os
+import sys
+from enum import Enum
+from pydantic import BaseModel, Field
+from typing import List, Optional
+
+current_script_path = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_script_path)
+sys.path.insert(0, project_root)
+
+from src.config.schemas.indicators import IndicatorConfig
+from src.config.constants import BASE_INDICATORS
 
 
-class IndicatorConfig(BaseModel):
-    window: int
-    price:  str = "close"
+class ColumnSource(str, Enum):
+    TIMESTAMPS = "timestamps"
+    OPEN       = "open"
+    HIGH       = "high"
+    LOW        = "low"
+    CLOSE      = "close"
+    ADJCLOSE   = "adjclose"
+    VOLUME     = "volume"
 
-class RSIConfig(IndicatorConfig):
-    pass
+class TimeFeature(str, Enum):
+    MINUTE    = "minute"
+    HOUR      = "hour"
+    DAY       = "day"
+    DAYOFWEEK = "day_of_week"
+    MONTH     = "month"
 
-class MACDConfig(IndicatorConfig):
-    short_window:  int
-    long_window:   int
-    signal_window: int
+class ReturnsMethod(str, Enum):
+    RAW     = "raw"
+    PERCENT = "percent"
+    LOG     = "log"
+
+class DimRedMethod(str, Enum):
+    UMAP = "umap"
+    PCA  = "pca"
+
+class ReturnsConfig(BaseModel):
+    column:  str = "close"
+    method:  ReturnsMethod = ReturnsMethod.RAW
+    period:  int = 1
+
+class LaggingConfig(BaseModel):
+    column:  str = "returns"
+    period:  int = 5
+
 
 class FeatureConfig(BaseModel):
-    time_features: List[str]
-    indicators:    Dict[str, Dict]
-    lags:          Optional[int] = None
-
-
-
-# Конфигурация по умолчанию для данных
-DEFAULT_FUTURES_CONFIG = {
-    "base_columns": {
-        "open": "open",
-        "high": "high",
-        "low": "low",
-        "close": "close",
-        "timestamps": "timestamps"
-    },
-    "ohlc": {
-        "open": True,
-        "high": True,
-        "low": True,
-        "close": True,
-    },
-    "time_features": ["minute", "hour", "day", "day_of_week"],
-    "lags": None,
-    "returns": {
-        "column": "close",
-        "method": "momentum",
-        "period": 1,
-        "log": True
-    },
-    "indicators": {
-        "RSI": {
-            "price": "close",
-            "window": 14
-        },
-        "BBP": {
-            "window": 14,
-            "std": 2,
-            "kind": "ema",
-            "output": ["BBB", "BBP"]
-        },
-        "MA_1": {
-            "price": "close",
-            "kind": "ema",
-            "window": 4
-        },
-        "MA_2": {
-            "price": "close",
-            "kind": "ema",
-            "window": 8
-        },
-        "MA_3": {
-            "price": "close",
-            "kind": "ema",
-            "window": 16
-        },
-        "MA_4": {
-            "price": "close",
-            "kind": "ema",
-            "window": 48
-        },
-        "MA_5": {
-            "price": "close",
-            "kind": "ema",
-            "window": 96
-        },
-        "MACD": {
-            "price": "close",
-            "short_window": 12,
-            "long_window": 26,
-            "signal_window": 9,
-            "output": ["MACD", "MACD_Signal", "MACD_Hist"]
-        },
-        "ATR": {
-            "window": 14,
-            "kind": "rma",
-        },
-        "ADX": {
-            "base_window": 14,
-            "signal_window": 14,
-            "kind": "rma",
-            "output": ["ADX", "+DI", "-DI"]
-        },
-        "DC": {
-            "window": 20,
-            "output": ["LowDCR", "UpDCR"]
-        },
-        "ERP": {
-            "window": 13
-        },
-        "MI": {
-            "short_window": 9,
-            "long_window": 25
-        },
-    },
-    "labels_encoding": None,
-    "apply_pca": False
-}
+    indicators:    List[IndicatorConfig]        = Field(default_factory=lambda: list(BASE_INDICATORS))
+    time_features: List[TimeFeature]            = Field(default_factory=lambda: [TimeFeature.DAYOFWEEK])
+    lags:          List[LaggingConfig]          = Field(default_factory=lambda: [LaggingConfig()])
+    returns:       ReturnsConfig                = Field(default_factory=ReturnsConfig)
+    dimred:        Optional[DimRedMethod]       = Field(default=None)
+    exclude:       Optional[List[ColumnSource]] = Field(default_factory=lambda: [ColumnSource.TIMESTAMPS])

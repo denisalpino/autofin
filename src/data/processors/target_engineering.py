@@ -1,4 +1,15 @@
+import os
+import sys
+from typing import Literal
+
 from pandas import DataFrame, Series
+
+current_script_path = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_script_path)
+sys.path.insert(0, project_root)
+
+from src.config.schemas.features import ReturnsMethod
+from src.features.calculators.returns import calculate_returns
 
 
 def create_direction_target(
@@ -39,25 +50,37 @@ def create_direction_target(
 
 def create_price_target(
     df: DataFrame,
-    price_col_name: str
+    price_col_name: str = "close",
+    returns: ReturnsMethod | Literal[False] = ReturnsMethod.LOG
 ) -> Series:
     """
-    Create price-based target variable representing percentage change.
+    Create price-based target variable.
 
     Parameters
     ---
     df : DataFrame
         DataFrame containing price data
-    price_col_name : str
+    price_col_name : str, default="close"
         Name of the price column to use
+    returns : ReturnsMethod | Literal[False], default=ReturnsMethod.LOG:
+        Method for calculating the target variable:
+        - ReturnsMethod.RAW: absolute price difference
+        - ReturnsMethod.PERCENT: percentage change
+        - ReturnsMethod.LOG: logarithmic ratio of current to previous price
+        - False: next price directly
 
     Returns
     ---
     Series: Series of percentage price changes
     """
     price = df[price_col_name]
-    # Calculate price difference between current and next period
-    diff = price - price.shift(-1)
-    # Calculate percentage change
-    target = (diff / price.shift(-1)).rename("target")
+
+    # Returns-based target
+    if returns:
+        target = calculate_returns(price, returns)
+    else: # Plain prices
+        target = price
+
+    target = target.shift(-1)
+    target = target.rename("target")
     return target
