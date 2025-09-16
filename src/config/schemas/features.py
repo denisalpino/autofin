@@ -13,12 +13,13 @@ from src.config.constants import BASE_INDICATORS
 
 
 class ColumnSource(str, Enum):
-    OPEN = "open"
-    HIGH = "high"
-    LOW = "low"
-    CLOSE = "close"
-    ADJCLOSE = "adjclose"
-    VOLUME = "volume"
+    TIMESTAMPS = "timestamps"
+    OPEN       = "open"
+    HIGH       = "high"
+    LOW        = "low"
+    CLOSE      = "close"
+    ADJCLOSE   = "adjclose"
+    VOLUME     = "volume"
 
 class TimeFeature(str, Enum):
     MINUTE    = "minute"
@@ -47,8 +48,9 @@ class LaggingConfig(BaseModel):
 
 
 class FeatureConfig(BaseModel):
-    indicators:    List[IndicatorConfig]  = Field(default_factory=lambda: list(BASE_INDICATORS))
-    time_features: List[TimeFeature]      = Field(default_factory=lambda: [TimeFeature.DAYOFWEEK])
-    lags:          List[LaggingConfig]    = Field(default_factory=lambda: [LaggingConfig()])
-    returns:       ReturnsConfig          = Field(default_factory=ReturnsConfig)
-    dimred:        Optional[DimRedMethod] = Field(default=None)
+    indicators:    List[IndicatorConfig]        = Field(default_factory=lambda: list(BASE_INDICATORS))
+    time_features: List[TimeFeature]            = Field(default_factory=lambda: [TimeFeature.DAYOFWEEK])
+    lags:          List[LaggingConfig]          = Field(default_factory=lambda: [LaggingConfig()])
+    returns:       ReturnsConfig                = Field(default_factory=ReturnsConfig)
+    dimred:        Optional[DimRedMethod]       = Field(default=None)
+    exclude:       Optional[List[ColumnSource]] = Field(default_factory=lambda: [ColumnSource.TIMESTAMPS])
