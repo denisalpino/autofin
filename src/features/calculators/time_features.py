@@ -16,16 +16,23 @@ def create_time_features(
 
         Parameters
         ---
-        timestamps: Series containing datetime values
-        minute: Whether to include minute-based features
-        hour: Whether to include hour-based features
-        day: Whether to include day-of-month features
-        day_of_week: Whether to include day-of-week features
-        month: Whether to include month features
+        timestamps : Series
+            Series containing datetime values
+        minute : bool, default=False
+            Whether to include minute-based features
+        hour : bool, default=False
+            Whether to include hour-based features
+        day : bool, default=False
+            Whether to include day-of-month features
+        day_of_week : bool, default=False
+            Whether to include day-of-week features
+        month : bool, default=False
+            Whether to include month features
 
         Returns
         ---
-        DataFrame: DataFrame with cyclic time features encoded as sin/cos pairs
+        DataFrame :
+            DataFrame with cyclic time features encoded as sin/cos pairs
 
         Raises
         ---
