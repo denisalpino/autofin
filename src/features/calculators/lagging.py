@@ -1,33 +1,52 @@
-from pandas import DataFrame, Series
+import os
+import sys
+
+from pandas import DataFrame
+
+current_script_path = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_script_path)
+sys.path.insert(0, project_root)
+
+from src.config.schemas.features import LaggingConfig
 
 
 def get_lagging_features(
-    ser: Series,
-    max_lag: int
+    df: DataFrame,
+    config: LaggingConfig
 ) -> DataFrame:
     """
-        Create lagged versions of a time series.
+    Create lagged versions of a time series.
 
-        Parameters
-        ---
-        ser: Input time series
-        max_lag: Maximum number of lags to create (will create lags 1 to max_lag)
+    Parameters
+    ---
+    df : Dataframe
+        Complete Dataframe with already created features
+    config : LaggingConfig
+        Configuration instance with column name and maximum number
+        of lags to create (will create lags 1 to `config.period`)
 
-        Returns
-        ---
-        DataFrame: DataFrame with lagged features
+    Returns
+    ---
+    DataFrame: DataFrame with lagged features
 
-        Raises
-        ---
-        ValueError: If max_lag is less than 1
+    Raises
+    ---
+    ValueError: If `config.period` is less than 1
     """
     # Validate input parameter
-    if max_lag < 1:
-        raise ValueError("Parameter `max_lag` must be at least 1.")
+    if config.period < 1:
+        raise ValueError(
+            "Lagging period must be at least 1, "
+            f"while {config.period} is obtained."
+        )
 
+    # Select the required feature by column name
+    col = df[config.column]
+
+    # Creating a dataframe for storing lags
     lagging_features = DataFrame()
 
-    # Create lags from 1 to max_lag
-    for lag in range(1, max_lag + 1):
-        lagging_features[f"{ser.name}_lag{lag}"] = ser.shift(lag)
+    # Create lags from 1 to config.period
+    for lag in range(1, config.period + 1):
+        lagging_features[f"{col.name}_lag{lag}"] = col.shift(lag)
     return lagging_features
