@@ -75,11 +75,11 @@ class DataLoaderConfig(BaseModel):
     def required_columns(self) -> set:
         """Set of required column names."""
         return {
-            self.mapping.timestamp_col,
-            self.mapping.open_col,
-            self.mapping.high_col,
-            self.mapping.low_col,
-            self.mapping.close_col
+            self.mapping.timestamp,
+            self.mapping.open,
+            self.mapping.high,
+            self.mapping.low,
+            self.mapping.close
         }
 
 

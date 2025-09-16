@@ -162,13 +162,7 @@ class DataLoader:
 
     def _validate_required_columns(self, df: DataFrame):
         """Validate presence of required columns"""
-        required_columns = {
-            self.config.mapping.timestamps,
-            self.config.mapping.open,
-            self.config.mapping.high,
-            self.config.mapping.low,
-            self.config.mapping.close
-        }
+        required_columns = self.config.required_columns
 
         missing_columns = required_columns - set(df.columns)
         if missing_columns:
