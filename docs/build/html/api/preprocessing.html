@@ -14,7 +14,7 @@
 <meta property="og:image:alt" content="Submodules: Data Loading: Feature Engineering: Scaling: Cross Validation for the grouped Time Series:" />
 <meta name="description" content="Submodules: Data Loading: Feature Engineering: Scaling: Cross Validation for the grouped Time Series:" />
 <meta name="twitter:card" content="summary_large_image" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Training Module" href="training.html" /><link rel="prev" title="src.training" href="generated/src.training.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="Training Module" href="training.html" /><link rel="prev" title="src.pipeline" href="generated/src.pipeline.html" />
 
     <!-- Generated with Sphinx 8.1.3 and Furo 2025.07.19 -->
         <title>Preprocessing Module - autofin</title>
@@ -221,14 +221,48 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Быстрый старт</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Установка</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="current">
-<li class="toctree-l2 has-children"><a class="reference internal" href="generated/src.preprocessing.html">src.preprocessing</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of src.preprocessing</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="generated/src.preprocessing.cv.html">src.preprocessing.cv</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/src.preprocessing.data_loading.html">src.preprocessing.data_loading</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/src.preprocessing.schema.html">src.preprocessing.schema</a></li>
-<li class="toctree-l3"><a class="reference internal" href="generated/src.preprocessing.winsorization.html">src.preprocessing.winsorization</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="generated/src.html">src</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of src</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="generated/src.config.html">src.config</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of src.config</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="generated/src.config.schemas.html">src.config.schemas</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of src.config.schemas</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.config.schemas.data.html">src.config.schemas.data</a></li>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.config.schemas.indicators.html">src.config.schemas.indicators</a></li>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.config.schemas.model.html">src.config.schemas.model</a></li>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.config.schemas.problem.html">src.config.schemas.problem</a></li>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.config.schemas.splitting.html">src.config.schemas.splitting</a></li>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.config.schemas.training.html">src.config.schemas.training</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="generated/src.training.html">src.training</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="generated/src.data.html">src.data</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of src.data</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4 has-children"><a class="reference internal" href="generated/src.data.loaders.html">src.data.loaders</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of src.data.loaders</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.data.loaders.utils.html">src.data.loaders.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="generated/src.data.processors.html">src.data.processors</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of src.data.processors</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.data.processors.alignment.html">src.data.processors.alignment</a></li>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.data.processors.winsorization.html">src.data.processors.winsorization</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="generated/src.data.scalers.html">src.data.scalers</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of src.data.scalers</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.data.scalers.base.html">src.data.scalers.base</a></li>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.data.scalers.implementations.html">src.data.scalers.implementations</a></li>
+</ul>
+</li>
+<li class="toctree-l4 has-children"><a class="reference internal" href="generated/src.data.splitters.html">src.data.splitters</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of src.data.splitters</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.data.splitters.cross_validation.html">src.data.splitters.cross_validation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="generated/src.data.splitters.train_test_split.html">src.data.splitters.train_test_split</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="generated/src.features.html">src.features</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of src.features</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="generated/src.features.calculators.html">src.features.calculators</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="generated/src.pipeline.html">src.pipeline</a></li>
+</ul>
+</li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Preprocessing Module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="training.html">Training Module</a></li>
 </ul>
@@ -237,7 +271,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Другое</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="GitHub репозиторий https://github.com/denisalpino/AutoFin">GitHub репозиторий https://github.com/denisalpino/AutoFin</a></li>
+<li class="toctree-l1"><a class="reference external" href="GitHub репозиторий https://github.com/denisalpino/autofin">GitHub репозиторий https://github.com/denisalpino/autofin</a></li>
 </ul>
 
 </div>
@@ -282,44 +316,8 @@
 <span id="preprocessing-module"></span><h1>Preprocessing Module<a class="headerlink" href="#module-src.preprocessing" title="Link to this heading">¶</a></h1>
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">¶</a></h2>
-<section id="module-src.preprocessing.data_loading">
-<span id="data-loading"></span><h3>Data Loading<a class="headerlink" href="#module-src.preprocessing.data_loading" title="Link to this heading">¶</a></h3>
-<dl class="py function">
-<dt class="sig sig-object py" id="src.preprocessing.data_loading.align_by_timestamps">
-<span class="sig-prename descclassname"><span class="pre">src.preprocessing.data_loading.</span></span><span class="sig-name descname"><span class="pre">align_by_timestamps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dfs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts_col</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/preprocessing/data_loading.html#align_by_timestamps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.preprocessing.data_loading.align_by_timestamps" title="Link to this definition">¶</a></dt>
-<dd><p>Filters an arbitrary DataFrame, leaving only timestamped rows from good_ts.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>dfs</strong> (<em>list</em><em>[</em><em>pandas.DataFrame</em><em>]</em>)</p></li>
-<li><p><strong>ts_col</strong> (<em>str</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><em>List</em>[pandas.DataFrame]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="src.preprocessing.data_loading.load_data">
-<span class="sig-prename descclassname"><span class="pre">src.preprocessing.data_loading.</span></span><span class="sig-name descname"><span class="pre">load_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loader_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/preprocessing/data_loading.html#load_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.preprocessing.data_loading.load_data" title="Link to this definition">¶</a></dt>
-<dd><p>Function for loading data from single file or all directory with assigning
-files in the new column named ‘ticker’ by symbols before the first ‘_’ (underline).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>file</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>dir</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>loader_config</strong> (<em>dict</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><em>List</em>[pandas.DataFrame]</p>
-</dd>
-</dl>
-</dd></dl>
-
+<section id="data-loading">
+<h3>Data Loading<a class="headerlink" href="#data-loading" title="Link to this heading">¶</a></h3>
 </section>
 <section id="feature-engineering">
 <h3>Feature Engineering<a class="headerlink" href="#feature-engineering" title="Link to this heading">¶</a></h3>
@@ -329,292 +327,6 @@ files in the new column named ‘ticker’ by symbols before the first ‘_’ (
 </section>
 <section id="cross-validation-for-the-grouped-time-series">
 <h3>Cross Validation for the grouped Time Series<a class="headerlink" href="#cross-validation-for-the-grouped-time-series" title="Link to this heading">¶</a></h3>
-<dl class="py class" id="module-src.preprocessing.cv">
-<dt class="sig sig-object py" id="src.preprocessing.cv.GroupTimeSeriesSplit">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.preprocessing.cv.</span></span><span class="sig-name descname"><span class="pre">GroupTimeSeriesSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_folds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'7d'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'expanding'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_train_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/preprocessing/cv.html#GroupTimeSeriesSplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.preprocessing.cv.GroupTimeSeriesSplit" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Time-series cross-validation splitter with group support.</p>
-<p>This class implements time-series cross-validation that preserves the temporal
-order of data within each group. It supports both expanding and rolling window
-approaches for training data, with configurable validation and test periods.</p>
-<p>Key Features:
-- Group-aware splitting: Each group is processed independently
-- Multiple validation folds: Generate multiple consecutive validation periods
-- Test set support: Optionally reserve a fixed test period
-- Two window strategies: Expanding (all past data) or rolling (fixed window)
-- Visualizations: Built-in plotting capabilities for split analysis</p>
-<p>The splitter ensures that:
-1. Validation and test sets never overlap
-2. Temporal order is preserved (no future data leaks into past)
-3. All samples from a group appear in the same split</p>
-<p class="rubric">Examples</p>
-<p>Basic usage with single validation fold:
-&gt;&gt;&gt; cv = GroupTimeSeriesSplit(val_folds=1, interval=’7d’)
-&gt;&gt;&gt; results = cv.split(X, y, groups, timestamps)
-&gt;&gt;&gt; for group_result in results.values():
-&gt;&gt;&gt;     for split in group_result.validation_splits:
-&gt;&gt;&gt;         model.fit(X.iloc[split.train_idx], y.iloc[split.train_idx])
-&gt;&gt;&gt;         score = model.score(X.iloc[split.val_idx], y.iloc[split.val_idx])</p>
-<p>With test set reservation:
-&gt;&gt;&gt; cv = GroupTimeSeriesSplit(val_folds=2, test_interval=’5d’, interval=’5d’)
-&gt;&gt;&gt; results = cv.split(X, y, groups, timestamps)
-&gt;&gt;&gt; for group_name, group_result in results.items():
-&gt;&gt;&gt;     if group_result.train_test_split:
-&gt;&gt;&gt;         # Use full train-test split
-&gt;&gt;&gt;         train_idx = group_result.train_test_split.train_idx
-&gt;&gt;&gt;         test_idx = group_result.train_test_split.test_idx
-&gt;&gt;&gt;         model.fit(X.iloc[train_idx], y.iloc[train_idx])
-&gt;&gt;&gt;         score = model.score(X.iloc[test_idx], y.iloc[test_idx])</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>val_folds</strong> (<em>int</em>)</p></li>
-<li><p><strong>test_interval</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>interval</strong> (<em>str</em>)</p></li>
-<li><p><strong>train_interval</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>window</strong> (<em>Literal</em><em>[</em><em>'expanding'</em><em>, </em><em>'rolling'</em><em>]</em>)</p></li>
-<li><p><strong>min_train_samples</strong> (<em>int</em>)</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="src.preprocessing.cv.GroupTimeSeriesSplit.get_timestamp_split">
-<span class="sig-name descname"><span class="pre">get_timestamp_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/preprocessing/cv.html#GroupTimeSeriesSplit.get_timestamp_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.preprocessing.cv.GroupTimeSeriesSplit.get_timestamp_split" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate split boundary timestamp for given number of steps.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>timestamps</strong> (<em>pd.Series</em>) – Series of timestamps to split</p></li>
-<li><p><strong>steps</strong> (<em>int</em>) – Number of intervals to offset from the end</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Boundary timestamp for the split</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pd.Timestamp</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="src.preprocessing.cv.GroupTimeSeriesSplit.plot_split">
-<span class="sig-name descname"><span class="pre">plot_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Value'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'dark'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">700</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1200</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/preprocessing/cv.html#GroupTimeSeriesSplit.plot_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.preprocessing.cv.GroupTimeSeriesSplit.plot_split" title="Link to this definition">¶</a></dt>
-<dd><p>Visualize time series cross-validation splits for different groups.</p>
-<p>This method generates an interactive plot showing train, validation, and test
-splits for time series cross-validation. It supports multiple groups and provides
-a dropdown menu to switch between them.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>y</strong> (<em>pd.Series</em><em>, </em><em>optional</em>) – Target variable values. If not provided, sequential values will be used.</p></li>
-<li><p><strong>groups</strong> (<em>pd.Series</em>) – Group labels for each sample. Must be the same length as timestamps.</p></li>
-<li><p><strong>group_name</strong> (<em>str</em><em>, </em><em>optional</em>) – Specific group to display initially. If not provided, the first group is used.</p></li>
-<li><p><strong>timestamps</strong> (<em>pd.Series</em>) – Timestamps for each sample. Must be the same length as groups.</p></li>
-<li><p><strong>y_title</strong> (<em>str</em><em>, </em><em>default=&quot;Value&quot;</em>) – Title for the Y-axis.</p></li>
-<li><p><strong>title</strong> (<em>str</em><em>, </em><em>optional</em>) – Plot title. If not provided, a default title will be generated.</p></li>
-<li><p><strong>theme</strong> (<em>{&quot;dark&quot;</em><em>, </em><em>&quot;light&quot;}</em><em>, </em><em>default=&quot;dark&quot;</em>) – Color theme for the plot.</p></li>
-<li><p><strong>height</strong> (<em>int</em><em>, </em><em>default=700</em>) – Plot height in pixels.</p></li>
-<li><p><strong>width</strong> (<em>int</em><em>, </em><em>default=1200</em>) – Plot width in pixels.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Plotly Figure object with the visualization.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>go.Figure</p>
-</dd>
-</dl>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cv</span> <span class="o">=</span> <span class="n">GroupTimeSeriesSplit</span><span class="p">(</span><span class="n">val_folds</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">test_interval</span><span class="o">=</span><span class="s1">&#39;30d&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span> <span class="o">=</span> <span class="n">cv</span><span class="o">.</span><span class="n">plot_split</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">y</span><span class="o">=</span><span class="n">target_series</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">groups</span><span class="o">=</span><span class="n">group_series</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">timestamps</span><span class="o">=</span><span class="n">timestamp_series</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">group_name</span><span class="o">=</span><span class="s1">&#39;AAPL&#39;</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">title</span><span class="o">=</span><span class="s1">&#39;Stock Price CV Splits&#39;</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">theme</span><span class="o">=</span><span class="s1">&#39;dark&#39;</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
-</div>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="src.preprocessing.cv.GroupTimeSeriesSplit.split">
-<span class="sig-name descname"><span class="pre">split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamps</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/preprocessing/cv.html#GroupTimeSeriesSplit.split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.preprocessing.cv.GroupTimeSeriesSplit.split" title="Link to this definition">¶</a></dt>
-<dd><p>Generate time-series splits preserving group structure.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>X</strong> (<em>pd.DataFrame</em><em>, </em><em>optional</em>) – Feature matrix (not used directly, for scikit-learn compatibility)</p></li>
-<li><p><strong>y</strong> (<em>pd.Series</em><em>, </em><em>optional</em>) – Target variable (not used directly, for scikit-learn compatibility)</p></li>
-<li><p><strong>groups</strong> (<em>pd.Series</em>) – Group labels for each sample. Splits are generated independently
-for each unique group value.</p></li>
-<li><p><strong>timestamps</strong> (<em>pd.Series</em>) – Timestamps for each sample. Must be the same length as X/y/groups.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Dictionary where keys are group names and values are SplitResult objects
-containing train-test split and validation splits for each group.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Dict[str, <a class="reference internal" href="#src.preprocessing.cv.SplitResult" title="src.preprocessing.cv.SplitResult">SplitResult</a>]</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If groups or timestamps are not provided, or if the time range
-    is insufficient for the requested splits.</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="src.preprocessing.cv.SplitIndices">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.preprocessing.cv.</span></span><span class="sig-name descname"><span class="pre">SplitIndices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/preprocessing/cv.html#SplitIndices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.preprocessing.cv.SplitIndices" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Container for train/validation/test split indices.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>train_idx</strong> (<em>List</em><em>[</em><em>int</em><em>]</em>)</p></li>
-<li><p><strong>val_idx</strong> (<em>List</em><em>[</em><em>int</em><em>] </em><em>| </em><em>None</em>)</p></li>
-<li><p><strong>test_idx</strong> (<em>List</em><em>[</em><em>int</em><em>] </em><em>| </em><em>None</em>)</p></li>
-<li><p><strong>group</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="src.preprocessing.cv.SplitIndices.train_idx">
-<span class="sig-name descname"><span class="pre">train_idx</span></span><a class="headerlink" href="#src.preprocessing.cv.SplitIndices.train_idx" title="Link to this definition">¶</a></dt>
-<dd><p>List of indices for training samples</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[int]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="src.preprocessing.cv.SplitIndices.val_idx">
-<span class="sig-name descname"><span class="pre">val_idx</span></span><a class="headerlink" href="#src.preprocessing.cv.SplitIndices.val_idx" title="Link to this definition">¶</a></dt>
-<dd><p>List of indices for validation samples (None if not applicable)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Optional[List[int]]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="src.preprocessing.cv.SplitIndices.test_idx">
-<span class="sig-name descname"><span class="pre">test_idx</span></span><a class="headerlink" href="#src.preprocessing.cv.SplitIndices.test_idx" title="Link to this definition">¶</a></dt>
-<dd><p>List of indices for test samples (None if not applicable)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Optional[List[int]]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="src.preprocessing.cv.SplitIndices.group">
-<span class="sig-name descname"><span class="pre">group</span></span><a class="headerlink" href="#src.preprocessing.cv.SplitIndices.group" title="Link to this definition">¶</a></dt>
-<dd><p>Group identifier for this split</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id0">
-<span class="sig-name descname"><span class="pre">group</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id1">
-<span class="sig-name descname"><span class="pre">test_idx</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id1" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id2">
-<span class="sig-name descname"><span class="pre">train_idx</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id2" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id3">
-<span class="sig-name descname"><span class="pre">val_idx</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id3" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="src.preprocessing.cv.SplitResult">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.preprocessing.cv.</span></span><span class="sig-name descname"><span class="pre">SplitResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">group</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_test_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_splits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/preprocessing/cv.html#SplitResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.preprocessing.cv.SplitResult" title="Link to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Container for all splits for a group.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>group</strong> (<em>str</em>)</p></li>
-<li><p><strong>train_test_split</strong> (<a class="reference internal" href="#src.preprocessing.cv.SplitIndices" title="src.preprocessing.cv.SplitIndices"><em>SplitIndices</em></a><em> | </em><em>None</em>)</p></li>
-<li><p><strong>validation_splits</strong> (<em>List</em><em>[</em><a class="reference internal" href="#src.preprocessing.cv.SplitIndices" title="src.preprocessing.cv.SplitIndices"><em>SplitIndices</em></a><em>]</em>)</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="src.preprocessing.cv.SplitResult.group">
-<span class="sig-name descname"><span class="pre">group</span></span><a class="headerlink" href="#src.preprocessing.cv.SplitResult.group" title="Link to this definition">¶</a></dt>
-<dd><p>Group identifier</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="src.preprocessing.cv.SplitResult.train_test_split">
-<span class="sig-name descname"><span class="pre">train_test_split</span></span><a class="headerlink" href="#src.preprocessing.cv.SplitResult.train_test_split" title="Link to this definition">¶</a></dt>
-<dd><p>Full train-test split (if test_interval is specified)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Optional[<a class="reference internal" href="#src.preprocessing.cv.SplitIndices" title="src.preprocessing.cv.SplitIndices">SplitIndices</a>]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="src.preprocessing.cv.SplitResult.validation_splits">
-<span class="sig-name descname"><span class="pre">validation_splits</span></span><a class="headerlink" href="#src.preprocessing.cv.SplitResult.validation_splits" title="Link to this definition">¶</a></dt>
-<dd><p>List of validation splits</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[<a class="reference internal" href="#src.preprocessing.cv.SplitIndices" title="src.preprocessing.cv.SplitIndices">SplitIndices</a>]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id4">
-<span class="sig-name descname"><span class="pre">group</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#id4" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id5">
-<span class="sig-name descname"><span class="pre">train_test_split</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#src.preprocessing.cv.SplitIndices" title="src.preprocessing.cv.SplitIndices"><span class="pre">SplitIndices</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id5" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="id6">
-<span class="sig-name descname"><span class="pre">validation_splits</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#src.preprocessing.cv.SplitIndices" title="src.preprocessing.cv.SplitIndices"><span class="pre">SplitIndices</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id6" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
 </section>
 </section>
 </section>
@@ -633,14 +345,14 @@ containing train-test split and validation splits for each group.</p>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="generated/src.training.html">
+          <a class="prev-page" href="generated/src.pipeline.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">src.training</div>
+                <div class="title">src.pipeline</div>
                 
               </div>
             </a>
@@ -676,42 +388,10 @@ containing train-test split and validation splits for each group.</p>
             <ul>
 <li><a class="reference internal" href="#">Preprocessing Module</a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a><ul>
-<li><a class="reference internal" href="#module-src.preprocessing.data_loading">Data Loading</a><ul>
-<li><a class="reference internal" href="#src.preprocessing.data_loading.align_by_timestamps"><code class="docutils literal notranslate"><span class="pre">align_by_timestamps()</span></code></a></li>
-<li><a class="reference internal" href="#src.preprocessing.data_loading.load_data"><code class="docutils literal notranslate"><span class="pre">load_data()</span></code></a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#data-loading">Data Loading</a></li>
 <li><a class="reference internal" href="#feature-engineering">Feature Engineering</a></li>
 <li><a class="reference internal" href="#scaling">Scaling</a></li>
-<li><a class="reference internal" href="#cross-validation-for-the-grouped-time-series">Cross Validation for the grouped Time Series</a><ul>
-<li><a class="reference internal" href="#src.preprocessing.cv.GroupTimeSeriesSplit"><code class="docutils literal notranslate"><span class="pre">GroupTimeSeriesSplit</span></code></a><ul>
-<li><a class="reference internal" href="#src.preprocessing.cv.GroupTimeSeriesSplit.get_timestamp_split"><code class="docutils literal notranslate"><span class="pre">GroupTimeSeriesSplit.get_timestamp_split()</span></code></a></li>
-<li><a class="reference internal" href="#src.preprocessing.cv.GroupTimeSeriesSplit.plot_split"><code class="docutils literal notranslate"><span class="pre">GroupTimeSeriesSplit.plot_split()</span></code></a></li>
-<li><a class="reference internal" href="#src.preprocessing.cv.GroupTimeSeriesSplit.split"><code class="docutils literal notranslate"><span class="pre">GroupTimeSeriesSplit.split()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#src.preprocessing.cv.SplitIndices"><code class="docutils literal notranslate"><span class="pre">SplitIndices</span></code></a><ul>
-<li><a class="reference internal" href="#src.preprocessing.cv.SplitIndices.train_idx"><code class="docutils literal notranslate"><span class="pre">SplitIndices.train_idx</span></code></a></li>
-<li><a class="reference internal" href="#src.preprocessing.cv.SplitIndices.val_idx"><code class="docutils literal notranslate"><span class="pre">SplitIndices.val_idx</span></code></a></li>
-<li><a class="reference internal" href="#src.preprocessing.cv.SplitIndices.test_idx"><code class="docutils literal notranslate"><span class="pre">SplitIndices.test_idx</span></code></a></li>
-<li><a class="reference internal" href="#src.preprocessing.cv.SplitIndices.group"><code class="docutils literal notranslate"><span class="pre">SplitIndices.group</span></code></a></li>
-<li><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">SplitIndices.group</span></code></a></li>
-<li><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">SplitIndices.test_idx</span></code></a></li>
-<li><a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">SplitIndices.train_idx</span></code></a></li>
-<li><a class="reference internal" href="#id3"><code class="docutils literal notranslate"><span class="pre">SplitIndices.val_idx</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#src.preprocessing.cv.SplitResult"><code class="docutils literal notranslate"><span class="pre">SplitResult</span></code></a><ul>
-<li><a class="reference internal" href="#src.preprocessing.cv.SplitResult.group"><code class="docutils literal notranslate"><span class="pre">SplitResult.group</span></code></a></li>
-<li><a class="reference internal" href="#src.preprocessing.cv.SplitResult.train_test_split"><code class="docutils literal notranslate"><span class="pre">SplitResult.train_test_split</span></code></a></li>
-<li><a class="reference internal" href="#src.preprocessing.cv.SplitResult.validation_splits"><code class="docutils literal notranslate"><span class="pre">SplitResult.validation_splits</span></code></a></li>
-<li><a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">SplitResult.group</span></code></a></li>
-<li><a class="reference internal" href="#id5"><code class="docutils literal notranslate"><span class="pre">SplitResult.train_test_split</span></code></a></li>
-<li><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">SplitResult.validation_splits</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li><a class="reference internal" href="#cross-validation-for-the-grouped-time-series">Cross Validation for the grouped Time Series</a></li>
 </ul>
 </li>
 </ul>

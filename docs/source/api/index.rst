@@ -7,8 +7,7 @@ API Reference
    :toctree: generated/
    :recursive:
 
-   src.preprocessing
-   src.training
+   src
 
 Основные модули
 ---------------
