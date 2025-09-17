@@ -93,38 +93,36 @@ class SplitConfig(BaseModel):
         return self
 
 
-@dataclass
-class SplitIndices:
+class SplitIndices(BaseModel):
     """
     Container for train/validation/test split indices.
 
     Attributes
     ----------
-    train_idx : List[int]
-        List of indices for training samples
-    val_idx : Optional[List[int]]
-        List of indices for validation samples (None if not applicable)
-    test_idx : Optional[List[int]]
-        List of indices for test samples (None if not applicable)
-    group : str
+    train_indices : List[int]
+        Indices for training samples
+    validation_indices : Optional[List[int]]
+        Indices for validation samples
+    test_indices : Optional[List[int]]
+        Indices for test samples
+    group : Optional[str]
         Group identifier for this split
     """
-    train_idx: List[int]
-    val_idx: Optional[List[int]] = None
-    test_idx: Optional[List[int]] = None
+    train_indices: List[int]
+    validation_indices: Optional[List[int]] = None
+    test_indices: Optional[List[int]] = None
     group: Optional[str] = None
 
     def __iter__(self) -> Iterator[List[int]]:
         """Iterator implementation for unpacking split indices."""
-        yield self.train_idx
-        if self.val_idx is not None:
-            yield self.val_idx
-        if self.test_idx is not None:
-            yield self.test_idx
+        yield self.train_indices
+        if self.validation_indices is not None:
+            yield self.validation_indices
+        if self.test_indices is not None:
+            yield self.test_indices
 
 
-@dataclass
-class SplitResult:
+class SplitResult(BaseModel):
     """
     Container for all splits for a group.
 
@@ -139,8 +137,4 @@ class SplitResult:
     """
     group: str
     train_test_split: Optional[SplitIndices] = None
-    validation_splits: List[SplitIndices] = None
-
-    def __post_init__(self):
-        if self.validation_splits is None:
-            self.validation_splits = []
+    validation_splits: List[SplitIndices] = Field(default_factory=list)
