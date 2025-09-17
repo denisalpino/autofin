@@ -37,7 +37,7 @@ class DataLoader:
         """
         if isinstance(config, str):
             # Loading configuration
-            self.config = load_config(config)
+            self.config = load_config(config).data_loader
         elif isinstance(config, DataLoaderConfig):
             # Assign configuration
             self.config = config
