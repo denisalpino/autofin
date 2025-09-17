@@ -17,6 +17,15 @@ class FileFormat(str, Enum):
     EXCEL = "excel"
     JSON = "json"
 
+class ColumnSource(str, Enum):
+    TIMESTAMPS = "timestamps"
+    OPEN       = "open"
+    HIGH       = "high"
+    LOW        = "low"
+    CLOSE      = "close"
+    ADJCLOSE   = "adjclose"
+    VOLUME     = "volume"
+
 class DatasetSchema(BaseModel):
     """
     Schema for dataset column mapping.
@@ -75,11 +84,11 @@ class DataLoaderConfig(BaseModel):
     def required_columns(self) -> set:
         """Set of required column names."""
         return {
-            self.mapping.timestamp_col,
-            self.mapping.open_col,
-            self.mapping.high_col,
-            self.mapping.low_col,
-            self.mapping.close_col
+            self.mapping.timestamps,
+            self.mapping.open,
+            self.mapping.high,
+            self.mapping.low,
+            self.mapping.close
         }
 
 

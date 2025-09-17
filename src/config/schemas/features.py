@@ -10,16 +10,8 @@ sys.path.insert(0, project_root)
 
 from src.config.schemas.indicators import IndicatorConfig
 from src.config.constants import BASE_INDICATORS
+from src.config.schemas.data import ColumnSource
 
-
-class ColumnSource(str, Enum):
-    TIMESTAMPS = "timestamps"
-    OPEN       = "open"
-    HIGH       = "high"
-    LOW        = "low"
-    CLOSE      = "close"
-    ADJCLOSE   = "adjclose"
-    VOLUME     = "volume"
 
 class TimeFeature(str, Enum):
     MINUTE    = "minute"

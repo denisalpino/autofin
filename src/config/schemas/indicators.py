@@ -3,7 +3,7 @@ from typing import List, Literal
 
 from pydantic import BaseModel, Field
 
-from .features import ColumnSource
+from .data import ColumnSource
 
 
 class MovingAverageType(str, Enum):
