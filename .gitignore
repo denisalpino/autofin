@@ -1,7 +1,5 @@
 catboost_info
 *.csv
-notebooks
-indicators
 
 # Игнорировать виртуальное окружение
 .venv/
