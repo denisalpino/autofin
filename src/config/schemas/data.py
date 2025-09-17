@@ -17,6 +17,15 @@ class FileFormat(str, Enum):
     EXCEL = "excel"
     JSON = "json"
 
+class ColumnSource(str, Enum):
+    TIMESTAMPS = "timestamps"
+    OPEN       = "open"
+    HIGH       = "high"
+    LOW        = "low"
+    CLOSE      = "close"
+    ADJCLOSE   = "adjclose"
+    VOLUME     = "volume"
+
 class DatasetSchema(BaseModel):
     """
     Schema for dataset column mapping.
