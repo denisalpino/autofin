@@ -49,4 +49,4 @@
    :caption: Другое
    :hidden:
 
-   GitHub репозиторий https://github.com/denisalpino/AutoFin
+   GitHub репозиторий https://github.com/denisalpino/autofin
