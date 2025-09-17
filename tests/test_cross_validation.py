@@ -8,7 +8,7 @@ current_script_path = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_script_path)
 sys.path.insert(0, project_root)
 
-from src.preprocessing.cv import GroupTimeSeriesSplit, SplitIndices, SplitResult
+from src.data.splitters.cross_validation import GroupTimeSeriesSplit, SplitIndices, SplitResult
 
 
 # Test data and expected results

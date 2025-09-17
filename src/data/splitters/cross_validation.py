@@ -1,64 +1,12 @@
-import warnings
-from dataclasses import dataclass
 from collections.abc import Generator
-from typing import Literal, Optional, Dict, List, Iterator, Union
+from typing import Dict, Literal, Optional, Union
+import warnings
 
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-
-@dataclass
-class SplitIndices:
-    """
-    Container for train/validation/test split indices.
-
-    Attributes
-    ----------
-    train_idx : List[int]
-        List of indices for training samples
-    val_idx : Optional[List[int]]
-        List of indices for validation samples (None if not applicable)
-    test_idx : Optional[List[int]]
-        List of indices for test samples (None if not applicable)
-    group : str
-        Group identifier for this split
-    """
-    train_idx: List[int]
-    val_idx: Optional[List[int]] = None
-    test_idx: Optional[List[int]] = None
-    group: Optional[str] = None
-
-    def __iter__(self) -> Iterator[List[int]]:
-        """Iterator implementation for unpacking split indices."""
-        yield self.train_idx
-        if self.val_idx is not None:
-            yield self.val_idx
-        if self.test_idx is not None:
-            yield self.test_idx
-
-
-@dataclass
-class SplitResult:
-    """
-    Container for all splits for a group.
-
-    Attributes
-    ----------
-    group : str
-        Group identifier
-    train_test_split : Optional[SplitIndices]
-        Full train-test split (if test_interval is specified)
-    validation_splits : List[SplitIndices]
-        List of validation splits
-    """
-    group: str
-    train_test_split: Optional[SplitIndices] = None
-    validation_splits: List[SplitIndices] = None
-
-    def __post_init__(self):
-        if self.validation_splits is None:
-            self.validation_splits = []
+from ...config.schemas.splitting import SplitIndices, SplitResult
 
 
 class GroupTimeSeriesSplit:
