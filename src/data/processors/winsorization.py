@@ -1,21 +1,23 @@
 from typing import Tuple
 
 from pandas import Series
-from numpy import clip, quantile
-
 
 def winsorize(
     y_train: Series,
     y_val: Series,
     y_test: Series,
-    winsorize_percent: int
+    winsorize_percent: int | float
 ) -> Tuple[Series, Series, Series]:
     """Применяет winsorization к целевым переменным"""
-    winsorize_frac = winsorize_percent / 200
-    low, high = quantile(y_train, [winsorize_frac, 1 - winsorize_frac])
+    p = winsorize_percent / 100.0
+    lower_q = (1.0 - p) / 2.0
+    upper_q = 1.0 - lower_q
 
-    y_train_clipped = Series(clip(y_train, low, high))
-    y_val_clipped = Series(clip(y_val, low, high))
-    y_test_clipped = Series(clip(y_test, low, high))
+    low = y_train.quantile(lower_q)
+    high = y_train.quantile(upper_q)
+
+    y_train_clipped = y_train.clip(lower=low, upper=high)
+    y_val_clipped   = y_val.clip(lower=low, upper=high)
+    y_test_clipped  = y_test.clip(lower=low, upper=high)
 
     return y_train_clipped, y_val_clipped, y_test_clipped
