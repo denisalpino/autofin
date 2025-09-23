@@ -226,9 +226,9 @@ class GroupTimeSeriesSplit:
                 continue
 
             yield SplitIndices(
-                train_idx=train_idx,
-                val_idx=val_idx,
-                test_idx=None,
+                train_indices=train_idx,
+                validation_indices=val_idx,
+                test_indices=None,
                 group=group_name
             )
 
@@ -294,9 +294,9 @@ class GroupTimeSeriesSplit:
                 # Add test split
                 if len(test_df) > 0:
                     group_result.train_test_split = SplitIndices(
-                        train_idx=train_val_df['_idx'].tolist(),
-                        val_idx=None,
-                        test_idx=test_df['_idx'].tolist(),
+                        train_indices=train_val_df['_idx'].tolist(),
+                        validation_indices=None,
+                        test_indices=test_df['_idx'].tolist(),
                         group=group_name
                     )
 
@@ -512,13 +512,13 @@ class GroupTimeSeriesSplit:
 
             # Calculate total number of folds
             total_val_folds = len(group_result.validation_splits)
-            has_test = group_result.train_test_split and group_result.train_test_split.test_idx
+            has_test = group_result.train_test_split and group_result.train_test_split.test_indices
 
             # Add test split if exists
             if has_test:
-                test_idx = group_result.train_test_split.test_idx
+                test_idx = group_result.train_test_split.test_indices  # pyright: ignore[reportOptionalMemberAccess]
                 # Convert global indices to group-specific indices
-                test_idx_local = [global_to_local_idx[group][idx] for idx in test_idx if idx in global_to_local_idx[group]]
+                test_idx_local = [global_to_local_idx[group][idx] for idx in test_idx if idx in global_to_local_idx[group]]  # pyright: ignore[reportOptionalIterable]
                 test_timestamps = group_timestamps.iloc[test_idx_local]
                 test_start = test_timestamps.min()
                 test_end = test_timestamps.max() + min_interval
@@ -581,9 +581,9 @@ class GroupTimeSeriesSplit:
                 fold_height = group_y_range / total_val_folds
 
                 for i, split in enumerate(group_result.validation_splits):
-                    if split.val_idx:
+                    if split.validation_indices:
                         # Convert global indices to group-specific indices
-                        val_idx_local = [global_to_local_idx[group][idx] for idx in split.val_idx if idx in global_to_local_idx[group]]
+                        val_idx_local = [global_to_local_idx[group][idx] for idx in split.validation_indices if idx in global_to_local_idx[group]]
                         val_timestamps = group_timestamps.iloc[val_idx_local]
                         val_start = val_timestamps.min()
                         val_end = val_timestamps.max() + min_interval
@@ -594,9 +594,9 @@ class GroupTimeSeriesSplit:
                         fold_center_y = fold_y_min + fold_height / 2
 
                         # Add training rectangle
-                        if split.train_idx:
+                        if split.train_indices:
                             # Convert global indices to group-specific indices
-                            train_idx_local = [global_to_local_idx[group][idx] for idx in split.train_idx if idx in global_to_local_idx[group]]
+                            train_idx_local = [global_to_local_idx[group][idx] for idx in split.train_indices if idx in global_to_local_idx[group]]
                             train_timestamps = group_timestamps.iloc[train_idx_local]
                             train_start = train_timestamps.min()
                             train_end = train_timestamps.max() + min_interval
