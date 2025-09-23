@@ -198,7 +198,7 @@ def plot_correlation_matrix(
         hoverinfo="text",
         text=annotation_text if annotate else None,
         texttemplate="%{text}" if annotate else None,
-        textfont=dict(size=10, color=text_color),  # Единый цвет для всего текста
+        textfont=dict(size=12, color=text_color),  # Единый цвет для всего текста
         hovertemplate="%{customdata}<extra></extra>",
         customdata=hover_text,
         colorbar=dict(
@@ -228,7 +228,7 @@ def plot_correlation_matrix(
                         y=i,
                         text=annotation_text[i][j],
                         showarrow=False,
-                        font=dict(size=10, color=font_color),
+                        font=dict(size=12, color=font_color),
                         xref="x",
                         yref="y"
                     )
@@ -258,14 +258,14 @@ def plot_correlation_matrix(
         xaxis=dict(
             tickangle=45,
             gridcolor=grid_color,
-            tickfont=dict(size=10, color=text_color),
-            side="top",
+            tickfont=dict(size=12, color=text_color),
+            side="bottom",
             tickvals=list(range(len(corr_matrix.columns))),
             ticktext=corr_matrix.columns.tolist()
         ),
         yaxis=dict(
             gridcolor=grid_color,
-            tickfont=dict(size=10, color=text_color),
+            tickfont=dict(size=12, color=text_color),
             tickvals=list(range(len(corr_matrix.index))),
             ticktext=corr_matrix.index.tolist()
         ),
