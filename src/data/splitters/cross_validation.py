@@ -127,13 +127,13 @@ class GroupTimeSeriesSplit:
         if window == "rolling" and train_interval is None:
             raise ValueError("train_interval must be specified for rolling window")
 
-    def _parse_interval(self, s: str) -> Union[pd.Timedelta, pd.DateOffset]:
+    def _parse_interval(self, s: str) -> Union[pd.Timedelta]:
         """Parse time interval string into pandas offset object."""
         n, unit = int(s[:-1]), s[-1]
         if unit == 'm': return pd.Timedelta(minutes=n)
         if unit == 'h': return pd.Timedelta(hours=n)
         if unit == 'd': return pd.Timedelta(days=n)
-        if unit == 'M': return pd.DateOffset(months=n)
+        if unit == 'M': return pd.Timedelta(days=30*n)
         raise ValueError("Unsupported unit. Use 'm', 'h', 'd', or 'M'")
 
     def _validate_time_range(self, timestamps: pd.Series) -> None:
@@ -364,21 +364,8 @@ class GroupTimeSeriesSplit:
         -------
         go.Figure
             Plotly Figure object with the visualization.
-
-        Examples
-        --------
-        >>> cv = GroupTimeSeriesSplit(val_folds=3, test_interval='30d')
-        >>> fig = cv.plot_split(
-        ...     y=target_series,
-        ...     groups=group_series,
-        ...     timestamps=timestamp_series,
-        ...     group_name='AAPL',
-        ...     title='Stock Price CV Splits',
-        ...     theme='dark'
-        ... )
-        >>> fig.show()
         """
-        # Set theme colors (dark theme by default)
+        # Set theme colors
         if theme == "dark":
             bg_color = '#121212'
             text_color = 'white'
@@ -419,17 +406,6 @@ class GroupTimeSeriesSplit:
         # Get splits for all groups
         splits_dict = self.split(X=None, y=None, groups=groups, timestamps=timestamps)
 
-        # Calculate global y range if y is provided
-        if y is not None:
-            global_y_min = y.min()
-            global_y_max = y.max()
-            global_y_range = global_y_max - global_y_min
-        else:
-            # Use index-based values if y is not provided
-            global_y_min = 0
-            global_y_max = len(timestamps) - 1
-            global_y_range = global_y_max - global_y_min
-
         # Determine which group to display initially
         if group_name is None:
             group_name = list(splits_dict.keys())[0]
@@ -440,35 +416,15 @@ class GroupTimeSeriesSplit:
         # Create a mapping from global index to group-specific index
         global_to_local_idx = {}
         group_y_ranges = {}
+        group_data = {}
+
         for group in splits_dict.keys():
             group_mask = groups == group
             group_indices = groups[group_mask].index
             global_to_local_idx[group] = {global_idx: local_idx for local_idx, global_idx in enumerate(group_indices)}
 
-            # Calculate group-specific y range
-            if y is not None:
-                group_y = y[group_mask]
-                group_y_min = group_y.min()
-                group_y_max = group_y.max()
-                group_y_range = group_y_max - group_y_min
-            else:
-                group_y_min = 0
-                group_y_max = len(group_indices) - 1
-                group_y_range = group_y_max - group_y_min
-
-            group_y_ranges[group] = (group_y_min, group_y_max, group_y_range)
-
-        # Create plot
-        fig = go.Figure()
-
-        # Add traces for all groups but make them invisible initially
-        all_groups = list(splits_dict.keys())
-        colors = px.colors.qualitative.Plotly
-
-        for i, group in enumerate(all_groups):
-            group_mask = groups == group
+            # Get group data
             group_timestamps = timestamps[group_mask]
-
             if y is not None:
                 group_y = y[group_mask]
             else:
@@ -479,16 +435,42 @@ class GroupTimeSeriesSplit:
             group_timestamps = group_timestamps.iloc[sorted_idx]
             group_y = group_y.iloc[sorted_idx]
 
-            # Get group-specific y range
+            # Calculate group-specific y range
+            if y is not None:
+                group_y_min = group_y.min()
+                group_y_max = group_y.max()
+                group_y_range = group_y_max - group_y_min
+            else:
+                group_y_min = 0
+                group_y_max = len(group_indices) - 1
+                group_y_range = group_y_max - group_y_min
+
+            group_y_ranges[group] = (group_y_min, group_y_max, group_y_range)
+            group_data[group] = (group_timestamps, group_y)
+
+        # Create plot
+        fig = go.Figure()
+
+        # Colors for different groups
+        colors = px.colors.qualitative.Plotly
+
+        # Store trace indices for each group
+        group_trace_indices = {}
+
+        for group_idx, group in enumerate(splits_dict.keys()):
+            group_timestamps, group_y = group_data[group]
             group_y_min, group_y_max, group_y_range = group_y_ranges[group]
+
+            # Store starting index for this group's traces
+            group_trace_indices[group] = len(fig.data)
 
             # Add main trace for this group
             fig.add_trace(go.Scatter(
                 x=group_timestamps,
                 y=group_y,
-                mode='lines+markers',
+                mode='lines',
                 name=group,
-                line=dict(color=colors[i % len(colors)], width=2),
+                line=dict(color=colors[group_idx % len(colors)], width=2),
                 marker=dict(size=4),
                 visible=(group == group_name),
                 hovertemplate=(
@@ -510,15 +492,14 @@ class GroupTimeSeriesSplit:
             else:
                 min_interval = pd.Timedelta(days=1)
 
-            # Calculate total number of folds
+            # Calculate total number of validation folds
             total_val_folds = len(group_result.validation_splits)
             has_test = group_result.train_test_split and group_result.train_test_split.test_indices
 
             # Add test split if exists
             if has_test:
-                test_idx = group_result.train_test_split.test_indices  # pyright: ignore[reportOptionalMemberAccess]
-                # Convert global indices to group-specific indices
-                test_idx_local = [global_to_local_idx[group][idx] for idx in test_idx if idx in global_to_local_idx[group]]  # pyright: ignore[reportOptionalIterable]
+                test_idx = group_result.train_test_split.test_indices
+                test_idx_local = [global_to_local_idx[group][idx] for idx in test_idx if idx in global_to_local_idx[group]]
                 test_timestamps = group_timestamps.iloc[test_idx_local]
                 test_start = test_timestamps.min()
                 test_end = test_timestamps.max() + min_interval
@@ -529,73 +510,38 @@ class GroupTimeSeriesSplit:
                     y=[group_y_min, group_y_max, group_y_max, group_y_min, group_y_min],
                     fill="toself",
                     fillcolor=test_color,
-                    opacity=0.2,
+                    opacity=0.3,
                     line=dict(color=test_color, width=2),
                     mode="lines",
-                    showlegend=False,
+                    name="Test",
+                    legendgroup="test",
+                    showlegend=(group == group_name),
                     hoverinfo="skip",
                     visible=(group == group_name)
                 ))
 
-                # Add rotated test annotation
-                test_center_x = test_start + (test_end - test_start) / 2
-                test_center_y = group_y_min + group_y_range / 2
-
-                # Calculate font size based on test duration
-                test_duration = (test_end - test_start).total_seconds()
-                font_size = min(36, max(16, int(test_duration / 3600)))
-
-                fig.add_trace(go.Scatter(
-                    x=[test_center_x],
-                    y=[test_center_y],
-                    mode="text",
-                    text=["TEST"],
-                    textfont=dict(size=font_size, color=test_color, family="Arial Black"),
-                    showlegend=False,
-                    hoverinfo="skip",
-                    visible=(group == group_name)
-                ))
-
-                # Add dividing lines around test rectangle
-                fig.add_trace(go.Scatter(
-                    x=[test_start, test_start],
-                    y=[group_y_min, group_y_max],
-                    mode="lines",
-                    line=dict(color=divider_color, width=1, dash="solid"),
-                    showlegend=False,
-                    hoverinfo="skip",
-                    visible=(group == group_name)
-                ))
-                fig.add_trace(go.Scatter(
-                    x=[test_end, test_end],
-                    y=[group_y_min, group_y_max],
-                    mode="lines",
-                    line=dict(color=divider_color, width=1, dash="solid"),
-                    showlegend=False,
-                    hoverinfo="skip",
-                    visible=(group == group_name)
-                ))
-
-            # Add validation and training folds
+            # Add validation and training folds with vertical spacing
             if total_val_folds > 0:
-                fold_height = group_y_range / total_val_folds
+                # Add vertical spacing between folds (5% of total range)
+                spacing = group_y_range * 0.05
+                available_height = group_y_range - spacing * (total_val_folds - 1)
+                fold_height = available_height / total_val_folds
 
                 for i, split in enumerate(group_result.validation_splits):
                     if split.validation_indices:
+                        # Calculate vertical position with spacing
+                        fold_y_min = group_y_min + i * (fold_height + spacing)
+                        fold_y_max = fold_y_min + fold_height
+                        fold_center_y = fold_y_min + fold_height / 2
+
                         # Convert global indices to group-specific indices
                         val_idx_local = [global_to_local_idx[group][idx] for idx in split.validation_indices if idx in global_to_local_idx[group]]
                         val_timestamps = group_timestamps.iloc[val_idx_local]
                         val_start = val_timestamps.min()
                         val_end = val_timestamps.max() + min_interval
 
-                        # Calculate vertical position
-                        fold_y_min = group_y_min + i * fold_height
-                        fold_y_max = fold_y_min + fold_height
-                        fold_center_y = fold_y_min + fold_height / 2
-
                         # Add training rectangle
                         if split.train_indices:
-                            # Convert global indices to group-specific indices
                             train_idx_local = [global_to_local_idx[group][idx] for idx in split.train_indices if idx in global_to_local_idx[group]]
                             train_timestamps = group_timestamps.iloc[train_idx_local]
                             train_start = train_timestamps.min()
@@ -606,45 +552,12 @@ class GroupTimeSeriesSplit:
                                 y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
                                 fill="toself",
                                 fillcolor=train_color,
-                                opacity=0.2,
+                                opacity=0.3,
                                 line=dict(color=train_color, width=2),
                                 mode="lines",
-                                showlegend=False,
-                                hoverinfo="skip",
-                                visible=(group == group_name)
-                            ))
-
-                            # Add training annotation
-                            train_center_x = train_start + (train_end - train_start) / 2
-                            font_size = min(24, max(14, int(fold_height / 10)))
-
-                            fig.add_trace(go.Scatter(
-                                x=[train_center_x],
-                                y=[fold_center_y],
-                                mode="text",
-                                text=[f"TRAIN {i+1}"],
-                                textfont=dict(size=font_size, color=train_color, family="Arial Black"),
-                                showlegend=False,
-                                hoverinfo="skip",
-                                visible=(group == group_name)
-                            ))
-
-                            # Add dividing lines around training rectangle
-                            fig.add_trace(go.Scatter(
-                                x=[train_start, train_start],
-                                y=[fold_y_min, fold_y_max],
-                                mode="lines",
-                                line=dict(color=divider_color, width=1, dash="solid"),
-                                showlegend=False,
-                                hoverinfo="skip",
-                                visible=(group == group_name)
-                            ))
-                            fig.add_trace(go.Scatter(
-                                x=[train_end, train_end],
-                                y=[fold_y_min, fold_y_max],
-                                mode="lines",
-                                line=dict(color=divider_color, width=1, dash="solid"),
-                                showlegend=False,
+                                name="Train" if i == 0 else "",
+                                legendgroup="train",
+                                showlegend=(group == group_name and i == 0),
                                 hoverinfo="skip",
                                 visible=(group == group_name)
                             ))
@@ -655,65 +568,70 @@ class GroupTimeSeriesSplit:
                             y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
                             fill="toself",
                             fillcolor=val_color,
-                            opacity=0.2,
+                            opacity=0.3,
                             line=dict(color=val_color, width=2),
                             mode="lines",
-                            showlegend=False,
+                            name="Validation" if i == 0 else "",
+                            legendgroup="validation",
+                            showlegend=(group == group_name and i == 0),
                             hoverinfo="skip",
                             visible=(group == group_name)
                         ))
 
-                        # Add validation annotation
-                        val_center_x = val_start + (val_end - val_start) / 2
-                        font_size = min(24, max(14, int(fold_height / 10)))
-
+                        # Add fold number annotation on the left side
                         fig.add_trace(go.Scatter(
-                            x=[val_center_x],
+                            x=[group_timestamps.min()],
                             y=[fold_center_y],
                             mode="text",
-                            text=[f"VAL {i+1}"],
-                            textfont=dict(size=font_size, color=val_color, family="Arial Black"),
+                            text=[f"Fold {i+1}"],
+                            textfont=dict(size=12, color=text_color, family="Arial"),
+                            textposition="middle right",
                             showlegend=False,
                             hoverinfo="skip",
                             visible=(group == group_name)
                         ))
 
-                        # Add dividing lines around validation rectangle
-                        fig.add_trace(go.Scatter(
-                            x=[val_start, val_start],
-                            y=[fold_y_min, fold_y_max],
-                            mode="lines",
-                            line=dict(color=divider_color, width=1, dash="solid"),
-                            showlegend=False,
-                            hoverinfo="skip",
-                            visible=(group == group_name)
-                        ))
-                        fig.add_trace(go.Scatter(
-                            x=[val_end, val_end],
-                            y=[fold_y_min, fold_y_max],
-                            mode="lines",
-                            line=dict(color=divider_color, width=1, dash="solid"),
-                            showlegend=False,
-                            hoverinfo="skip",
-                            visible=(group == group_name)
-                        ))
+            # Add dividing lines between folds
+            if total_val_folds > 0:
+                for i in range(1, total_val_folds):
+                    spacing = group_y_range * 0.05
+                    available_height = group_y_range - spacing * (total_val_folds - 1)
+                    fold_height = available_height / total_val_folds
 
-        # Set title
-        if title is None:
-            title = f"<b>Time Series Cross-Validation Split</b><br><span style='font-size:14px'>Group: {group_name}</span>"
+                    divider_y = group_y_min + i * (fold_height + spacing)
+
+                    fig.add_trace(go.Scatter(
+                        x=[group_timestamps.min(), group_timestamps.max()],
+                        y=[divider_y, divider_y],
+                        mode="lines",
+                        line=dict(color=divider_color, width=1, dash="dash"),
+                        showlegend=False,
+                        hoverinfo="skip",
+                        visible=(group == group_name)
+                    ))
 
         # Create dropdown menu
         dropdown_buttons = []
-        for group in all_groups:
+        for group in splits_dict.keys():
             # Create visibility list for this group
             visibility = [False] * len(fig.data)
 
-            # Find all traces that belong to this group
-            for i, trace in enumerate(fig.data):
-                if trace.name == group:
-                    visibility[i] = True
-                elif hasattr(trace, 'visible') and trace.visible == (group == group_name):
-                    visibility[i] = True
+            # Get the trace indices for this group
+            start_idx = group_trace_indices[group]
+            next_group_idx = None
+
+            # Find the starting index of the next group
+            group_list = list(splits_dict.keys())
+            current_index = group_list.index(group)
+            if current_index + 1 < len(group_list):
+                next_group = group_list[current_index + 1]
+                next_group_idx = group_trace_indices[next_group]
+            else:
+                next_group_idx = len(fig.data)
+
+            # Set visibility for this group's traces
+            for i in range(start_idx, next_group_idx):
+                visibility[i] = True
 
             # Create button for this group
             dropdown_buttons.append(
@@ -733,73 +651,11 @@ class GroupTimeSeriesSplit:
                 )
             )
 
-        # Update layout with ROC-AUC inspired styling
-        fig.update_layout(
-            title=dict(
-                text=title,
-                x=0.5,
-                xanchor='center',
-                font=dict(size=20, color=text_color)
-            ),
-            xaxis=dict(
-                title="<b>Date & Time</b>",
-                gridcolor=grid_color,
-                title_font=dict(size=16, color=text_color),
-                tickfont=dict(color=text_color),
-                showline=False,
-                zeroline=False,
-                showspikes=True,
-                spikecolor=crosshair_color,
-                spikethickness=1,
-                spikedash="dot",
-                spikemode="across"
-            ),
-            yaxis=dict(
-                title=f"<b>{y_title}</b>",
-                gridcolor=grid_color,
-                title_font=dict(size=16, color=text_color),
-                tickfont=dict(color=text_color),
-                range=[
-                    group_y_ranges[group_name][0] - group_y_ranges[group_name][2] * 0.05,
-                    group_y_ranges[group_name][1] + group_y_ranges[group_name][2] * 0.05
-                ],
-                showline=True,
-                linecolor=grid_color,
-                zeroline=False,
-                showspikes=True,
-                spikecolor=crosshair_color,
-                spikethickness=1,
-                spikedash="dot",
-                spikemode="across"
-            ),
-            hovermode='x unified',
-            plot_bgcolor=bg_color,
-            paper_bgcolor=bg_color,
-            height=height,
-            width=width,
-            margin=dict(l=80, r=50, t=100, b=80),
-            font=dict(family="Arial", color=text_color),
-            showlegend=False,
-            updatemenus=[
-                dict(
-                    buttons=dropdown_buttons,
-                    direction="down",
-                    pad={"r": 10, "t": 10},
-                    showactive=True,
-                    x=0.02,
-                    xanchor="left",
-                    y=0.98,
-                    yanchor="top",
-                    bgcolor=dropdown_bg,
-                    bordercolor=text_color,
-                    borderwidth=1,
-                    font=dict(color=dropdown_text, size=12),
-                    active=all_groups.index(group_name)
-                )
-            ]
-        )
+        # Set title
+        if title is None:
+            title = f"<b>Time Series Cross-Validation Split</b><br><span style='font-size:14px'>Group: {group_name}</span>"
 
-        # Update layout with ROC-AUC inspired styling
+        # Update layout
         fig.update_layout(
             title=dict(
                 text=title,
@@ -843,9 +699,18 @@ class GroupTimeSeriesSplit:
             paper_bgcolor=bg_color,
             height=height,
             width=width,
-            margin=dict(l=80, r=50, t=100, b=80),
+            margin=dict(l=100, r=50, t=100, b=80),  # Increased left margin for fold labels
             font=dict(family="Arial", color=text_color),
-            showlegend=False,
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
+                bgcolor='rgba(0,0,0,0)',
+                font=dict(size=12)
+            ),
             updatemenus=[
                 dict(
                     buttons=dropdown_buttons,
@@ -860,7 +725,7 @@ class GroupTimeSeriesSplit:
                     bordercolor=text_color,
                     borderwidth=1,
                     font=dict(color=dropdown_text, size=12),
-                    active=all_groups.index(group_name)
+                    active=list(splits_dict.keys()).index(group_name)
                 )
             ]
         )
