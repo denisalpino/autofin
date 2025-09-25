@@ -32,7 +32,7 @@ class GroupTimeSeriesSplit:
     Examples
     --------
     Basic usage with single validation fold:
-    >>> cv = GroupTimeSeriesSplit(val_folds=1, interval='7d')
+    >>> cv = GroupTimeSeriesSplit(k_folds=1, val_interval='7d')
     >>> results = cv.split(X, y, groups, timestamps)
     >>> for group_result in results.values():
     >>>     for split in group_result.validation_splits:
@@ -40,7 +40,7 @@ class GroupTimeSeriesSplit:
     >>>         score = model.score(X.iloc[split.val_idx], y.iloc[split.val_idx])
 
     With test set reservation:
-    >>> cv = GroupTimeSeriesSplit(val_folds=2, test_interval='5d', interval='5d')
+    >>> cv = GroupTimeSeriesSplit(k_folds=2, test_interval='5d', val_interval='5d')
     >>> results = cv.split(X, y, groups, timestamps)
     >>> for group_name, group_result in results.items():
     >>>     if group_result.train_test_split:
@@ -53,9 +53,9 @@ class GroupTimeSeriesSplit:
 
     def __init__(
         self,
-        val_folds: int = 1,
+        k_folds: int = 1,
         test_interval: Optional[str] = None,
-        interval: str = "7d",
+        val_interval: str = "7d",
         train_interval: Optional[str] = None,
         window: Literal["expanding", "rolling"] = "expanding",
         min_train_samples: int = 1
@@ -65,7 +65,7 @@ class GroupTimeSeriesSplit:
 
         Parameters
         ----------
-        val_folds : int, default=1
+        k_folds : int, default=1
             Number of consecutive validation folds to generate per group.
             Each validation fold covers one interval period.
             Set to 0 to skip validation (only test splits will be generated).
@@ -75,7 +75,7 @@ class GroupTimeSeriesSplit:
             at the end of each group's timeline for testing.
             Supported units: 'm' (minutes), 'h' (hours), 'd' (days), 'M' (months)
 
-        interval : str, default="7d"
+        val_interval : str, default="7d"
             Time interval for each validation fold. Supported units:
             - 'm' - minutes (e.g., '15m' for 15 minutes)
             - 'h' - hours (e.g., '12h' for 12 hours)
@@ -100,12 +100,12 @@ class GroupTimeSeriesSplit:
         Raises
         ------
         ValueError
-            If val_folds is negative, or if rolling window is used
+            If k_folds is negative, or if rolling window is used
             without specifying train_interval.
         """
-        self._val_folds = val_folds
+        self._k_folds = k_folds
         self._test_interval = test_interval
-        self._offset = self._parse_interval(interval)
+        self._offset = self._parse_interval(val_interval)
         self._window = window
         self._min_train_samples = min_train_samples
 
@@ -121,8 +121,8 @@ class GroupTimeSeriesSplit:
             self._test_offset = None
 
         # Validate parameters
-        if val_folds < 0:
-            raise ValueError("val_folds must be a non-negative integer")
+        if k_folds < 0:
+            raise ValueError("k_folds must be a non-negative integer")
 
         if window == "rolling" and train_interval is None:
             raise ValueError("train_interval must be specified for rolling window")
@@ -150,7 +150,7 @@ class GroupTimeSeriesSplit:
         ValueError
             If the time range is insufficient for the requested splits
         """
-        total_needed = self._offset * self._val_folds
+        total_needed = self._offset * self._k_folds
 
         if self._test_offset:
             total_needed += self._test_offset
@@ -304,15 +304,15 @@ class GroupTimeSeriesSplit:
             self._validate_time_range(gdf['ts'])
 
             # Generate validation folds
-            if self._val_folds > 0 and len(train_val_df) > 0:
+            if self._k_folds > 0 and len(train_val_df) > 0:
                 # Calculate start point for validation folds
                 # We need to ensure we have enough data for all folds
-                total_val_range = self._offset * self._val_folds
+                total_val_range = self._offset * self._k_folds
                 start_val = train_val_df['ts'].iloc[-1] - total_val_range
 
                 # Generate folds
                 validation_splits = list(self._get_fold_indices(
-                    train_val_df, start_val, self._val_folds, group_name
+                    train_val_df, start_val, self._k_folds, group_name
                 ))
                 group_result.validation_splits = validation_splits
 
@@ -493,7 +493,7 @@ class GroupTimeSeriesSplit:
                 min_interval = pd.Timedelta(days=1)
 
             # Calculate total number of validation folds
-            total_val_folds = len(group_result.validation_splits)
+            total_k_folds = len(group_result.validation_splits)
             has_test = group_result.train_test_split and group_result.train_test_split.test_indices
 
             # Add test split if exists
@@ -521,11 +521,11 @@ class GroupTimeSeriesSplit:
                 ))
 
             # Add validation and training folds with vertical spacing
-            if total_val_folds > 0:
+            if total_k_folds > 0:
                 # Add vertical spacing between folds (5% of total range)
                 spacing = group_y_range * 0.05
-                available_height = group_y_range - spacing * (total_val_folds - 1)
-                fold_height = available_height / total_val_folds
+                available_height = group_y_range - spacing * (total_k_folds - 1)
+                fold_height = available_height / total_k_folds
 
                 for i, split in enumerate(group_result.validation_splits):
                     if split.validation_indices:

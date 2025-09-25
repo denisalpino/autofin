@@ -18,21 +18,21 @@ TEST_CASES = [
         "description": "Single validation split with test interval",
         "dates": pd.date_range('2023-01-01', '2023-01-10', freq='D'),
         "groups": ['AAPL'] * 10,
-        "params": {"val_folds": 1, "test_interval": "2d", "interval": '2d'},
+        "params": {"k_folds": 1, "test_interval": "2d", "val_interval": '2d'},
         "expected": {
             'AAPL': SplitResult(
                 group='AAPL',
                 train_test_split=SplitIndices(
-                    train_idx=[0, 1, 2, 3, 4, 5, 6, 7],
-                    val_idx=None,
-                    test_idx=[8, 9],
+                    train_indices=[0, 1, 2, 3, 4, 5, 6, 7],
+                    validation_indices=None,
+                    test_indices=[8, 9],
                     group='AAPL'
                 ),
                 validation_splits=[
                     SplitIndices(
-                        train_idx=[0, 1, 2, 3, 4, 5],
-                        val_idx=[6, 7],
-                        test_idx=None,
+                        train_indices=[0, 1, 2, 3, 4, 5],
+                        validation_indices=[6, 7],
+                        test_indices=None,
                         group='AAPL'
                     )
                 ]
@@ -44,27 +44,27 @@ TEST_CASES = [
         "description": "Multiple validation folds with larger interval",
         "dates": pd.date_range('2023-01-01', '2023-01-12', freq='D'),
         "groups": ['AAPL'] * 12,
-        "params": {"val_folds": 2, "test_interval": "2d", "interval": '3d'},
+        "params": {"k_folds": 2, "test_interval": "2d", "val_interval": '3d'},
         "expected": {
             'AAPL': SplitResult(
                 group='AAPL',
                 train_test_split=SplitIndices(
-                    train_idx=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                    val_idx=None,
-                    test_idx=[10, 11],
+                    train_indices=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                    validation_indices=None,
+                    test_indices=[10, 11],
                     group='AAPL'
                 ),
                 validation_splits=[
                     SplitIndices(
-                        train_idx=[0, 1, 2, 3],
-                        val_idx=[4, 5, 6],
-                        test_idx=None,
+                        train_indices=[0, 1, 2, 3],
+                        validation_indices=[4, 5, 6],
+                        test_indices=None,
                         group='AAPL'
                     ),
                     SplitIndices(
-                        train_idx=[0, 1, 2, 3, 4, 5, 6],
-                        val_idx=[7, 8, 9],
-                        test_idx=None,
+                        train_indices=[0, 1, 2, 3, 4, 5, 6],
+                        validation_indices=[7, 8, 9],
+                        test_indices=None,
                         group='AAPL'
                     )
                 ]
@@ -76,33 +76,33 @@ TEST_CASES = [
         "description": "Different intervals for validation folds",
         "dates": pd.date_range('2023-01-01', '2023-01-12', freq='D'),
         "groups": ['AAPL'] * 12,
-        "params": {"val_folds": 3, "test_interval": "2d", "interval": '1d'},
+        "params": {"k_folds": 3, "test_interval": "2d", "val_interval": '1d'},
         "expected": {
             'AAPL': SplitResult(
                 group='AAPL',
                 train_test_split=SplitIndices(
-                    train_idx=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                    val_idx=None,
-                    test_idx=[10, 11],
+                    train_indices=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                    validation_indices=None,
+                    test_indices=[10, 11],
                     group='AAPL'
                 ),
                 validation_splits=[
                     SplitIndices(
-                        train_idx=[0, 1, 2, 3, 4, 5, 6],
-                        val_idx=[7],
-                        test_idx=None,
+                        train_indices=[0, 1, 2, 3, 4, 5, 6],
+                        validation_indices=[7],
+                        test_indices=None,
                         group='AAPL'
                     ),
                     SplitIndices(
-                        train_idx=[0, 1, 2, 3, 4, 5, 6, 7],
-                        val_idx=[8],
-                        test_idx=None,
+                        train_indices=[0, 1, 2, 3, 4, 5, 6, 7],
+                        validation_indices=[8],
+                        test_indices=None,
                         group='AAPL'
                     ),
                     SplitIndices(
-                        train_idx=[0, 1, 2, 3, 4, 5, 6, 7, 8],
-                        val_idx=[9],
-                        test_idx=None,
+                        train_indices=[0, 1, 2, 3, 4, 5, 6, 7, 8],
+                        validation_indices=[9],
+                        test_indices=None,
                         group='AAPL'
                     )
                 ]
@@ -114,22 +114,22 @@ TEST_CASES = [
         "description": "Rolling window without test split",
         "dates": pd.date_range('2023-01-01', '2023-01-16', freq='D'),
         "groups": ['AAPL'] * 16,
-        "params": {"val_folds": 2, "interval": '3d', "train_interval": "6d", "window": 'rolling'},
+        "params": {"k_folds": 2, "val_interval": '3d', "train_interval": "6d", "window": 'rolling'},
         "expected": {
             'AAPL': SplitResult(
                 group='AAPL',
                 train_test_split=None,
                 validation_splits=[
                     SplitIndices(
-                        train_idx=[3, 4, 5, 6, 7, 8, 9],
-                        val_idx=[10, 11, 12],
-                        test_idx=None,
+                        train_indices=[3, 4, 5, 6, 7, 8, 9],
+                        validation_indices=[10, 11, 12],
+                        test_indices=None,
                         group='AAPL'
                     ),
                     SplitIndices(
-                        train_idx=[6, 7, 8, 9, 10, 11, 12],
-                        val_idx=[13, 14, 15],
-                        test_idx=None,
+                        train_indices=[6, 7, 8, 9, 10, 11, 12],
+                        validation_indices=[13, 14, 15],
+                        test_indices=None,
                         group='AAPL'
                     )
                 ]
@@ -142,27 +142,27 @@ TEST_CASES = [
         "dates": pd.date_range('2023-01-01', '2023-01-10', freq='D'),
         "groups": ['AAPL'] * 10 + ['MSFT'] * 10,
         "timestamps": lambda: pd.Series(list(pd.date_range('2023-01-01', '2023-01-10', freq='D')) * 2),
-        "params": {"val_folds": 2, "test_interval": "2d", "interval": '2d'},
+        "params": {"k_folds": 2, "test_interval": "2d", "val_interval": '2d'},
         "expected": {
             'AAPL': SplitResult(
                 group='AAPL',
                 train_test_split=SplitIndices(
-                    train_idx=[0, 1, 2, 3, 4, 5, 6, 7],
-                    val_idx=None,
-                    test_idx=[8, 9],
+                    train_indices=[0, 1, 2, 3, 4, 5, 6, 7],
+                    validation_indices=None,
+                    test_indices=[8, 9],
                     group='AAPL'
                 ),
                 validation_splits=[
                     SplitIndices(
-                        train_idx=[0, 1, 2, 3],
-                        val_idx=[4, 5],
-                        test_idx=None,
+                        train_indices=[0, 1, 2, 3],
+                        validation_indices=[4, 5],
+                        test_indices=None,
                         group='AAPL'
                     ),
                     SplitIndices(
-                        train_idx=[0, 1, 2, 3, 4, 5],
-                        val_idx=[6, 7],
-                        test_idx=None,
+                        train_indices=[0, 1, 2, 3, 4, 5],
+                        validation_indices=[6, 7],
+                        test_indices=None,
                         group='AAPL'
                     )
                 ]
@@ -170,22 +170,22 @@ TEST_CASES = [
             'MSFT': SplitResult(
                 group='MSFT',
                 train_test_split=SplitIndices(
-                    train_idx=[10, 11, 12, 13, 14, 15, 16, 17],
-                    val_idx=None,
-                    test_idx=[18, 19],
+                    train_indices=[10, 11, 12, 13, 14, 15, 16, 17],
+                    validation_indices=None,
+                    test_indices=[18, 19],
                     group='MSFT'
                 ),
                 validation_splits=[
                     SplitIndices(
-                        train_idx=[10, 11, 12, 13],
-                        val_idx=[14, 15],
-                        test_idx=None,
+                        train_indices=[10, 11, 12, 13],
+                        validation_indices=[14, 15],
+                        test_indices=None,
                         group='MSFT'
                     ),
                     SplitIndices(
-                        train_idx=[10, 11, 12, 13, 14, 15],
-                        val_idx=[16, 17],
-                        test_idx=None,
+                        train_indices=[10, 11, 12, 13, 14, 15],
+                        validation_indices=[16, 17],
+                        test_indices=None,
                         group='MSFT'
                     )
                 ]
