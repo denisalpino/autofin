@@ -58,12 +58,11 @@ class FeatureBuilder:
 
         # Time-based feature engineering - creates cyclic time features
         if tf_cfg := self.config.time_features:
-            col = "timestamps"
             # Create boolean list of which time features to generate
             bool_params = [param in tf_cfg for param in TimeFeature]
 
             # Generate time features using the timestamp column
-            time_features = create_time_features(df[col], *bool_params)
+            time_features = create_time_features(df.timestamps, *bool_params)
             feature_frames.append(time_features)
 
         # Returns feature engineering - calculates price returns
@@ -98,8 +97,13 @@ class FeatureBuilder:
                 lag_features = get_lagging_features(features, lag_cfg)
                 features = concat([features, lag_features], axis=1)
 
+        # TODO: We're working with features that doesn't include base_columns,
+        # so we can't exclude some cols, only before merging main df with features.
+        # It means that we need to transfer this part to DataPipeline!!!
         # Drop columns if needed
-        if exclude := self.config.exclude:
-            features.drop(columns=[col.value for col in exclude], inplace=True)
+        #if exclude := self.config.exclude:
+        #    print(self.config.exclude)
+        #    print(features.columns)
+        #    features = features.drop(columns=[col.value for col in exclude])
 
         return features.reindex(original_index)
