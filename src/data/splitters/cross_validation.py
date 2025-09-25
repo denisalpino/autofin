@@ -365,35 +365,39 @@ class GroupTimeSeriesSplit:
         go.Figure
             Plotly Figure object with the visualization.
         """
-        # Set theme colors
+        # Theme configuration (более контрастные цвета)
         if theme == "dark":
             bg_color = '#121212'
             text_color = 'white'
             grid_color = 'rgba(255, 255, 255, 0.1)'
-            train_color = '#1f77b4'
-            val_color = '#ff7f0e'
-            test_color = '#d62728'
-            line_color = '#ffffff'
+            train_color = '#3366CC'
+            val_color = '#FF9933'
+            test_color = '#FF3333'
+            line_color = 'rgba(255, 255, 255, 0.8)'
             dropdown_bg = '#2c2c2c'
             dropdown_text = 'white'
             active_bg = '#404040'
             hover_bg = '#3a5bb8'
-            divider_color = 'rgba(255, 255, 255, 0.3)'
             crosshair_color = 'rgba(255, 255, 255, 0.5)'
+            significant_color = '#FFC107'
+            legend_bg = 'rgba(30, 30, 30, 0.9)'
+            legend_border = '#FFC107'
         else:
             bg_color = 'white'
             text_color = 'black'
             grid_color = 'rgba(0, 0, 0, 0.1)'
-            train_color = '#1f77b4'
-            val_color = '#ff7f0e'
-            test_color = '#d62728'
-            line_color = '#000000'
+            train_color = '#3366CC'
+            val_color = '#FF9933'
+            test_color = '#FF3333'
+            line_color = 'rgba(0, 0, 0, 0.8)'
             dropdown_bg = '#f0f0f0'
             dropdown_text = 'black'
             active_bg = '#d0d0d0'
             hover_bg = '#3a5bb8'
-            divider_color = 'rgba(0, 0, 0, 0.3)'
             crosshair_color = 'rgba(0, 0, 0, 0.5)'
+            significant_color = '#FF8F00'
+            legend_bg = 'rgba(240, 240, 240, 0.9)'
+            legend_border = '#FF8F00'
 
         # Convert timestamps to Series if it's a DatetimeIndex
         if isinstance(timestamps, pd.DatetimeIndex):
@@ -451,9 +455,6 @@ class GroupTimeSeriesSplit:
         # Create plot
         fig = go.Figure()
 
-        # Colors for different groups
-        colors = px.colors.qualitative.Plotly
-
         # Store trace indices for each group
         group_trace_indices = {}
 
@@ -470,16 +471,15 @@ class GroupTimeSeriesSplit:
                 y=group_y,
                 mode='lines',
                 name=group,
-                line=dict(color=colors[group_idx % len(colors)], width=2),
+                line=dict(color=line_color, width=2),  # Более толстая линия
                 marker=dict(size=4),
                 visible=(group == group_name),
                 hovertemplate=(
-                    '<b>Group</b>: %{text}<br>'
-                    '<b>Date</b>: %{x}<br>'
-                    '<b>Value</b>: %{y:.2f}<br>'
-                    '<extra></extra>'
+                    '<b>Group</b>: ' + group + '<br>' +
+                    '<b>Date</b>: %{x|%Y-%m-%d %H:%M:%S}<br>' +
+                    '<b>Value</b>: %{y:.4f}<extra></extra>'
                 ),
-                text=[group] * len(group_timestamps)
+                showlegend=False
             ))
 
             # Get split results for this group
@@ -504,14 +504,14 @@ class GroupTimeSeriesSplit:
                 test_start = test_timestamps.min()
                 test_end = test_timestamps.max() + min_interval
 
-                # Add test rectangle
+                # Add test rectangle with более контрастной заливкой
                 fig.add_trace(go.Scatter(
                     x=[test_start, test_start, test_end, test_end, test_start],
                     y=[group_y_min, group_y_max, group_y_max, group_y_min, group_y_min],
                     fill="toself",
                     fillcolor=test_color,
-                    opacity=0.3,
-                    line=dict(color=test_color, width=2),
+                    opacity=0.4,  # Увеличили прозрачность
+                    line=dict(color=test_color, width=2),  # Более толстая граница
                     mode="lines",
                     name="Test",
                     legendgroup="test",
@@ -540,7 +540,7 @@ class GroupTimeSeriesSplit:
                         val_start = val_timestamps.min()
                         val_end = val_timestamps.max() + min_interval
 
-                        # Add training rectangle
+                        # Add training rectangl
                         if split.train_indices:
                             train_idx_local = [global_to_local_idx[group][idx] for idx in split.train_indices if idx in global_to_local_idx[group]]
                             train_timestamps = group_timestamps.iloc[train_idx_local]
@@ -552,10 +552,10 @@ class GroupTimeSeriesSplit:
                                 y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
                                 fill="toself",
                                 fillcolor=train_color,
-                                opacity=0.3,
+                                opacity=0.4,
                                 line=dict(color=train_color, width=2),
                                 mode="lines",
-                                name="Train" if i == 0 else "",
+                                name="Train",
                                 legendgroup="train",
                                 showlegend=(group == group_name and i == 0),
                                 hoverinfo="skip",
@@ -568,50 +568,36 @@ class GroupTimeSeriesSplit:
                             y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
                             fill="toself",
                             fillcolor=val_color,
-                            opacity=0.3,
+                            opacity=0.4,
                             line=dict(color=val_color, width=2),
                             mode="lines",
-                            name="Validation" if i == 0 else "",
+                            name="Validation",
                             legendgroup="validation",
                             showlegend=(group == group_name and i == 0),
                             hoverinfo="skip",
                             visible=(group == group_name)
                         ))
 
-                        # Add fold number annotation on the left side
+                        # Add fold number annotation as a separate trace
+                        time_range = group_timestamps.max() - group_timestamps.min()
+                        text_x = group_timestamps.min() - time_range * 0.01
+                        text_y = max(group_y_min, min(group_y_max, fold_center_y))
+
                         fig.add_trace(go.Scatter(
-                            x=[group_timestamps.min()],
-                            y=[fold_center_y],
+                            x=[text_x],
+                            y=[text_y],
                             mode="text",
                             text=[f"Fold {i+1}"],
                             textfont=dict(size=12, color=text_color, family="Arial"),
-                            textposition="middle right",
+                            textposition="middle center",
                             showlegend=False,
                             hoverinfo="skip",
                             visible=(group == group_name)
                         ))
 
-            # Add dividing lines between folds
-            if total_val_folds > 0:
-                for i in range(1, total_val_folds):
-                    spacing = group_y_range * 0.05
-                    available_height = group_y_range - spacing * (total_val_folds - 1)
-                    fold_height = available_height / total_val_folds
-
-                    divider_y = group_y_min + i * (fold_height + spacing)
-
-                    fig.add_trace(go.Scatter(
-                        x=[group_timestamps.min(), group_timestamps.max()],
-                        y=[divider_y, divider_y],
-                        mode="lines",
-                        line=dict(color=divider_color, width=1, dash="dash"),
-                        showlegend=False,
-                        hoverinfo="skip",
-                        visible=(group == group_name)
-                    ))
-
         # Create dropdown menu
         dropdown_buttons = []
+
         for group in splits_dict.keys():
             # Create visibility list for this group
             visibility = [False] * len(fig.data)
@@ -633,6 +619,21 @@ class GroupTimeSeriesSplit:
             for i in range(start_idx, next_group_idx):
                 visibility[i] = True
 
+            # Update legend visibility for all legend groups
+            legend_visibility = {'train': False, 'validation': False, 'test': False}
+            for i in range(start_idx, min(next_group_idx, len(fig.data))):
+                trace = fig.data[i]
+                if hasattr(trace, 'legendgroup'):
+                    if trace.legendgroup == 'train' and not legend_visibility['train']:
+                        trace.showlegend = True
+                        legend_visibility['train'] = True
+                    elif trace.legendgroup == 'validation' and not legend_visibility['validation']:
+                        trace.showlegend = True
+                        legend_visibility['validation'] = True
+                    elif trace.legendgroup == 'test' and not legend_visibility['test']:
+                        trace.showlegend = True
+                        legend_visibility['test'] = True
+
             # Create button for this group
             dropdown_buttons.append(
                 dict(
@@ -645,6 +646,10 @@ class GroupTimeSeriesSplit:
                             "yaxis.range": [
                                 group_y_ranges[group][0] - group_y_ranges[group][2] * 0.05,
                                 group_y_ranges[group][1] + group_y_ranges[group][2] * 0.05
+                            ],
+                            "xaxis.range": [
+                                group_data[group][0].min() - (group_data[group][0].max() - group_data[group][0].min()) * 0.02,
+                                group_data[group][0].max() + (group_data[group][0].max() - group_data[group][0].min()) * 0.02
                             ]
                         }
                     ]
@@ -655,36 +660,50 @@ class GroupTimeSeriesSplit:
         if title is None:
             title = f"<b>Time Series Cross-Validation Split</b><br><span style='font-size:14px'>Group: {group_name}</span>"
 
-        # Update layout
+        # Calculate initial ranges
+        initial_timestamps, initial_y = group_data[group_name]
+        initial_y_min, initial_y_max, initial_y_range = group_y_ranges[group_name]
+
+        x_range = [
+            initial_timestamps.min() - (initial_timestamps.max() - initial_timestamps.min()) * 0.02,
+            initial_timestamps.max() + (initial_timestamps.max() - initial_timestamps.min()) * 0.02
+        ]
+
+        y_range = [
+            initial_y_min - initial_y_range * 0.05,
+            initial_y_max + initial_y_range * 0.05
+        ]
+
+        # Update layout with consistent styling
         fig.update_layout(
             title=dict(
                 text=title,
                 x=0.5,
                 xanchor='center',
-                font=dict(size=20, color=text_color)
+                font=dict(size=20, color=text_color),
+                y=0.97
             ),
             xaxis=dict(
                 title="<b>Date & Time</b>",
                 gridcolor=grid_color,
-                title_font=dict(size=16, color=text_color),
-                tickfont=dict(color=text_color),
-                showline=False,
+                title_font=dict(size=14, color=text_color),
+                tickfont=dict(size=12, color=text_color),
+                showline=True,
+                linecolor=grid_color,
                 zeroline=False,
                 showspikes=True,
                 spikecolor=crosshair_color,
                 spikethickness=1,
                 spikedash="dot",
-                spikemode="across"
+                spikemode="across",
+                range=x_range
             ),
             yaxis=dict(
                 title=f"<b>{y_title}</b>",
                 gridcolor=grid_color,
-                title_font=dict(size=16, color=text_color),
-                tickfont=dict(color=text_color),
-                range=[
-                    group_y_ranges[group_name][0] - group_y_ranges[group_name][2] * 0.05,
-                    group_y_ranges[group_name][1] + group_y_ranges[group_name][2] * 0.05
-                ],
+                title_font=dict(size=14, color=text_color),
+                tickfont=dict(size=12, color=text_color),
+                range=y_range,
                 showline=True,
                 linecolor=grid_color,
                 zeroline=False,
@@ -699,8 +718,8 @@ class GroupTimeSeriesSplit:
             paper_bgcolor=bg_color,
             height=height,
             width=width,
-            margin=dict(l=100, r=50, t=100, b=80),  # Increased left margin for fold labels
-            font=dict(family="Arial", color=text_color),
+            margin=dict(l=80, r=50, t=100, b=80),
+            font=dict(family="Arial, sans-serif", color=text_color),
             showlegend=True,
             legend=dict(
                 orientation="h",
@@ -708,8 +727,17 @@ class GroupTimeSeriesSplit:
                 y=1.02,
                 xanchor="right",
                 x=1,
-                bgcolor='rgba(0,0,0,0)',
-                font=dict(size=12)
+                bgcolor=legend_bg,
+                bordercolor=legend_border,
+                borderwidth=1,
+                font=dict(size=12, color=text_color),
+                itemsizing='constant'
+            ),
+            hoverlabel=dict(
+                bgcolor="rgba(30,30,30,0.9)" if theme == 'dark' else "rgba(255,255,255,0.9)",
+                font=dict(color=text_color, size=12),
+                bordercolor=significant_color if theme == 'dark' else train_color,
+                namelength=-1
             ),
             updatemenus=[
                 dict(
@@ -719,7 +747,7 @@ class GroupTimeSeriesSplit:
                     showactive=True,
                     x=0.02,
                     xanchor="left",
-                    y=0.98,
+                    y=1.08,
                     yanchor="top",
                     bgcolor=dropdown_bg,
                     bordercolor=text_color,
