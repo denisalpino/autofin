@@ -39,7 +39,7 @@ def plot_correlation_matrix(
             le = LabelEncoder()
             for col in categorical_columns:
                 try:
-                    if pd.api.types.is_categorical_dtype(df[col]):
+                    if isinstance(df[col], pd.CategoricalDtype):
                         if 'missing' not in df[col].cat.categories:
                             df[col] = df[col].cat.add_categories('missing')
                         df[col] = df[col].fillna('missing')
@@ -103,7 +103,7 @@ def plot_correlation_matrix(
         bg_color = '#121212'
         text_color = 'white'
         grid_color = 'rgba(255, 255, 255, 0.1)'
-        significant_color = '#FFC107'
+        significant_color = '#FFD700'
         non_significant_color = 'rgba(255, 255, 255, 0.6)'
         color_scale = [
             [0.0, '#B71C1C'],
@@ -136,32 +136,49 @@ def plot_correlation_matrix(
     # Calculate statistics for subtitle
     corr_no_diag = corr_matrix.values.copy()
     np.fill_diagonal(corr_no_diag, np.nan)
-    corr_no_diag = pd.DataFrame(corr_no_diag, index=corr_matrix.index, columns=corr_matrix.columns)
+    corr_no_diag_flat = corr_no_diag[~np.isnan(corr_no_diag)]
 
-    strong_pos = (corr_no_diag > 0.7).sum().sum()
-    strong_neg = (corr_no_diag < -0.7).sum().sum()
-
-    # Count significant correlations
+    # Use only unique pairs
+    strong_pos = 0
+    strong_neg = 0
     significant_count = 0
-    for i in range(len(corr_matrix.index)):
-        for j in range(len(corr_matrix.columns)):
-            if (not pd.isna(corr_matrix_masked.iloc[i, j]) and
-                p_values.iloc[i, j] < significance_threshold and
-                i != j and
-                (not mask_upper or i >= j)):
+
+    n_vars = len(corr_matrix.index)
+    for i in range(n_vars):
+        for j in range(i + 1, n_vars):
+            corr_val = corr_matrix.iloc[i, j]
+            p_val = p_values.iloc[i, j]
+
+            if corr_val > 0.7:
+                strong_pos += 1
+            elif corr_val < -0.7:
+                strong_neg += 1
+
+            if p_val < significance_threshold:
                 significant_count += 1
 
-    # Prepare annotation text (without colors)
+    # Prepare annotation text with proper colors
     annotation_text = []
+    text_colors = []
     for i, row_name in enumerate(corr_matrix.index):
         text_row = []
+        color_row = []
         for j, col_name in enumerate(corr_matrix.columns):
             if pd.isna(corr_matrix_masked.iloc[i, j]):
                 text_row.append("")
+                color_row.append(non_significant_color)
             else:
                 corr_val = corr_matrix.iloc[i, j]
+                p_val = p_values.iloc[i, j]
                 text_row.append(f"{corr_val:.2f}")
+
+                # Set colour depend on value
+                if i != j and p_val < significance_threshold:
+                    color_row.append(significant_color)
+                else:
+                    color_row.append(non_significant_color)
         annotation_text.append(text_row)
+        text_colors.append(color_row)
 
     # Prepare hover text
     hover_text = []
@@ -187,7 +204,7 @@ def plot_correlation_matrix(
                 hover_row.append(hover_text_str)
         hover_text.append(hover_row)
 
-    # Main heatmap (without text colors)
+    # Main heatmap
     heatmap = go.Heatmap(
         z=corr_matrix_masked.values,
         x=corr_matrix.columns,
@@ -196,9 +213,8 @@ def plot_correlation_matrix(
         zmin=-1,
         zmax=1,
         hoverinfo="text",
-        text=annotation_text if annotate else None,
-        texttemplate="%{text}" if annotate else None,
-        textfont=dict(size=12, color=text_color),  # Единый цвет для всего текста
+        text=None,
+        texttemplate=None,
         hovertemplate="%{customdata}<extra></extra>",
         customdata=hover_text,
         colorbar=dict(
@@ -211,29 +227,22 @@ def plot_correlation_matrix(
 
     fig.add_trace(heatmap)
 
-    # Add colored annotations for significant correlations
+    # Add coloured annotations for all cells
     if annotate:
         for i in range(len(corr_matrix.index)):
             for j in range(len(corr_matrix.columns)):
-                if (not pd.isna(corr_matrix_masked.iloc[i, j]) and
-                    i != j and  # Не диагональ
-                    p_values.iloc[i, j] < significance_threshold):
-
-                    # Определяем цвет текста в зависимости от значимости
-                    font_color = significant_color if p_values.iloc[i, j] < significance_threshold else non_significant_color
-
-                    # Добавляем аннотацию с правильным цветом
+                if not pd.isna(corr_matrix_masked.iloc[i, j]):
                     fig.add_annotation(
                         x=j,
                         y=i,
                         text=annotation_text[i][j],
                         showarrow=False,
-                        font=dict(size=12, color=font_color),
+                        font=dict(size=12, color=text_colors[i][j]),
                         xref="x",
                         yref="y"
                     )
 
-    # Enhanced subtitle with all statistics
+    # Enhanced subtitle with statistics
     extended_subtitle = (
         f"Method: {method} | Variables: {len(df.columns)} | "
         f"Observations: {n} | "
