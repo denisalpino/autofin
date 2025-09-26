@@ -191,6 +191,65 @@ TEST_CASES = [
                 ]
             )
         }
+    },
+    {
+        "id": "padding_success",
+        "description": "Successful split with padding between validation folds",
+        "dates": pd.date_range('2023-01-01', '2023-01-20', freq='D'),
+        "groups": ['AAPL'] * 20,
+        "params": {
+            "k_folds": 3,
+            "test_interval": "2d",
+            "val_interval": '2d',
+            "padding": '3d'  # 3-day gap between validation folds
+        },
+        "expected": {
+            'AAPL': SplitResult(
+                group='AAPL',
+                train_test_split=SplitIndices(
+                    train_indices=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
+                    validation_indices=None,
+                    test_indices=[18, 19],
+                    group='AAPL'
+                ),
+                validation_splits=[
+                    SplitIndices(
+                        train_indices=[0, 1, 2, 3, 4, 5],
+                        validation_indices=[6, 7],
+                        test_indices=None,
+                        group='AAPL'
+                    ),
+                    SplitIndices(
+                        train_indices=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                        validation_indices=[11, 12],
+                        test_indices=None,
+                        group='AAPL'
+                    ),
+                    SplitIndices(
+                        train_indices=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                        validation_indices=[16, 17],
+                        test_indices=None,
+                        group='AAPL'
+                    )
+                ]
+            )
+        }
+    }
+]
+
+# Test cases that should raise errors
+ERROR_TEST_CASES = [
+    {
+        "id": "padding_too_large",
+        "description": "Padding too large for available time range",
+        "dates": pd.date_range('2023-01-01', '2023-01-10', freq='D'),
+        "groups": ['AAPL'] * 10,
+        "params": {
+            "k_folds": 3,
+            "val_interval": '2d',
+            "padding": '5d'  # Too large padding for only 10 days of data
+        },
+        "expected_error": ValueError
     }
 ]
 
