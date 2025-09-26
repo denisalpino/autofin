@@ -382,7 +382,7 @@ class GroupTimeSeriesSplit:
         go.Figure
             Plotly Figure object with the visualization.
         """
-        # Theme configuration (более контрастные цвета)
+        # Theme configuration
         if theme == "dark":
             bg_color = '#121212'
             text_color = 'white'
@@ -393,13 +393,12 @@ class GroupTimeSeriesSplit:
             line_color = 'rgba(255, 255, 255, 0.8)'
             dropdown_bg = '#2c2c2c'
             dropdown_text = 'white'
-            active_bg = '#404040'
-            hover_bg = '#3a5bb8'
             crosshair_color = 'rgba(255, 255, 255, 0.5)'
             significant_color = '#FFC107'
             legend_bg = 'rgba(30, 30, 30, 0.9)'
             legend_border = '#FFC107'
-            padding_color = 'rgba(200, 200, 200, 0.3)'  # New color for padding areas
+            padding_color = 'rgba(200, 200, 200, 0.3)'
+            border_color = 'rgba(150, 150, 150, 0.6)' 
         else:
             bg_color = 'white'
             text_color = 'black'
@@ -410,13 +409,12 @@ class GroupTimeSeriesSplit:
             line_color = 'rgba(0, 0, 0, 0.8)'
             dropdown_bg = '#f0f0f0'
             dropdown_text = 'black'
-            active_bg = '#d0d0d0'
-            hover_bg = '#3a5bb8'
             crosshair_color = 'rgba(0, 0, 0, 0.5)'
             significant_color = '#FF8F00'
             legend_bg = 'rgba(240, 240, 240, 0.9)'
             legend_border = '#FF8F00'
-            padding_color = 'rgba(100, 100, 100, 0.2)'  # New color for padding areas
+            padding_color = 'rgba(100, 100, 100, 0.2)'
+            border_color = 'rgba(100, 100, 100, 0.5)'
 
         # Convert timestamps to Series if it's a DatetimeIndex
         if isinstance(timestamps, pd.DatetimeIndex):
@@ -523,18 +521,32 @@ class GroupTimeSeriesSplit:
                 test_start = test_timestamps.min()
                 test_end = test_timestamps.max() + min_interval
 
-                # Add test rectangle
+                # Add test rectangle with border
                 fig.add_trace(go.Scatter(
                     x=[test_start, test_start, test_end, test_end, test_start],
                     y=[group_y_min, group_y_max, group_y_max, group_y_min, group_y_min],
                     fill="toself",
                     fillcolor=test_color,
                     opacity=0.4,
-                    line=dict(color=test_color, width=2),
+                    line=dict(color=border_color, width=1, dash='dot'),
                     mode="lines",
                     name="Test",
                     legendgroup="test",
                     showlegend=(group == group_name),
+                    hoverinfo="skip",
+                    visible=(group == group_name)
+                ))
+
+                # Add test fill without border
+                fig.add_trace(go.Scatter(
+                    x=[test_start, test_start, test_end, test_end, test_start],
+                    y=[group_y_min, group_y_max, group_y_max, group_y_min, group_y_min],
+                    fill="toself",
+                    fillcolor=test_color,
+                    opacity=0.4,
+                    line=dict(width=0),
+                    mode="lines",
+                    showlegend=False,
                     hoverinfo="skip",
                     visible=(group == group_name)
                 ))
@@ -572,35 +584,55 @@ class GroupTimeSeriesSplit:
 
                             # Only add padding visualization if there's a significant gap
                             if padding_end > padding_start:
+                                # Use previous fold's Y position for padding
+                                prev_fold_y_min = group_y_min + (i-1) * (fold_height + spacing)
+                                prev_fold_y_max = prev_fold_y_min + fold_height
+
+                                # Add padding rectangle with border
                                 fig.add_trace(go.Scatter(
                                     x=[padding_start, padding_start, padding_end, padding_end, padding_start],
-                                    y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
+                                    y=[prev_fold_y_min, prev_fold_y_max, prev_fold_y_max, prev_fold_y_min, prev_fold_y_min],
                                     fill="toself",
                                     fillcolor=padding_color,
                                     opacity=0.3,
-                                    line=dict(color=padding_color, width=1, dash='dot'),
+                                    line=dict(color=border_color, width=1, dash='dot'),
                                     mode="lines",
                                     name="Padding",
                                     legendgroup="padding",
-                                    showlegend=(group == group_name and i == 1),  # Show only once per group
+                                    showlegend=(group == group_name and i == 1),
                                     hoverinfo="skip",
                                     visible=(group == group_name)
                                 ))
 
-                        # Add training rectangle
+                                # Add padding fill without border
+                                fig.add_trace(go.Scatter(
+                                    x=[padding_start, padding_start, padding_end, padding_end, padding_start],
+                                    y=[prev_fold_y_min, prev_fold_y_max, prev_fold_y_max, prev_fold_y_min, prev_fold_y_min],
+                                    fill="toself",
+                                    fillcolor=padding_color,
+                                    opacity=0.3,
+                                    line=dict(width=0),
+                                    mode="lines",
+                                    showlegend=False,
+                                    hoverinfo="skip",
+                                    visible=(group == group_name)
+                                ))
+
+                        # Add training rectangle with border
                         if split.train_indices:
                             train_idx_local = [global_to_local_idx[group][idx] for idx in split.train_indices if idx in global_to_local_idx[group]]
                             train_timestamps = group_timestamps.iloc[train_idx_local]
                             train_start = train_timestamps.min()
                             train_end = train_timestamps.max() + min_interval
 
+                            # Add training border
                             fig.add_trace(go.Scatter(
                                 x=[train_start, train_start, train_end, train_end, train_start],
                                 y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
                                 fill="toself",
                                 fillcolor=train_color,
                                 opacity=0.4,
-                                line=dict(color=train_color, width=2),
+                                line=dict(color=border_color, width=1, dash='dot'),
                                 mode="lines",
                                 name="Train",
                                 legendgroup="train",
@@ -609,18 +641,47 @@ class GroupTimeSeriesSplit:
                                 visible=(group == group_name)
                             ))
 
-                        # Add validation rectangle
+                            # Add training fill without border
+                            fig.add_trace(go.Scatter(
+                                x=[train_start, train_start, train_end, train_end, train_start],
+                                y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
+                                fill="toself",
+                                fillcolor=train_color,
+                                opacity=0.4,
+                                line=dict(width=0),
+                                mode="lines",
+                                showlegend=False,
+                                hoverinfo="skip",
+                                visible=(group == group_name)
+                            ))
+
+                        # Add validation rectangle with border
+                        # Add validation border
                         fig.add_trace(go.Scatter(
                             x=[val_start, val_start, val_end, val_end, val_start],
                             y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
                             fill="toself",
                             fillcolor=val_color,
                             opacity=0.4,
-                            line=dict(color=val_color, width=2),
+                            line=dict(color=border_color, width=1, dash='dot'),
                             mode="lines",
                             name="Validation",
                             legendgroup="validation",
                             showlegend=(group == group_name and i == 0),
+                            hoverinfo="skip",
+                            visible=(group == group_name)
+                        ))
+
+                        # Add validation fill without border
+                        fig.add_trace(go.Scatter(
+                            x=[val_start, val_start, val_end, val_end, val_start],
+                            y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
+                            fill="toself",
+                            fillcolor=val_color,
+                            opacity=0.4,
+                            line=dict(width=0),
+                            mode="lines",
+                            showlegend=False,
                             hoverinfo="skip",
                             visible=(group == group_name)
                         ))
