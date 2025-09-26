@@ -15,13 +15,15 @@ class GroupTimeSeriesSplit:
 
     This class implements time-series cross-validation that preserves the temporal
     order of data within each group. It supports both expanding and rolling window
-    approaches for training data, with configurable validation and test periods.
+    approaches for training data, with configurable validation and test periods,
+    and padding between validation samples.
 
     Key Features:
     - Group-aware splitting: Each group is processed independently
     - Multiple validation folds: Generate multiple consecutive validation periods
     - Test set support: Optionally reserve a fixed test period
     - Two window strategies: Expanding (all past data) or rolling (fixed window)
+    - Padding: Configurable gaps between validation samples
     - Visualizations: Built-in plotting capabilities for split analysis
 
     The splitter ensures that:
@@ -31,24 +33,9 @@ class GroupTimeSeriesSplit:
 
     Examples
     --------
-    Basic usage with single validation fold:
-    >>> cv = GroupTimeSeriesSplit(k_folds=1, val_interval='7d')
+    Basic usage with padding between validation folds:
+    >>> cv = GroupTimeSeriesSplit(k_folds=3, val_interval='7d', padding='2d', window="rolling)
     >>> results = cv.split(X, y, groups, timestamps)
-    >>> for group_result in results.values():
-    >>>     for split in group_result.validation_splits:
-    >>>         model.fit(X.iloc[split.train_idx], y.iloc[split.train_idx])
-    >>>         score = model.score(X.iloc[split.val_idx], y.iloc[split.val_idx])
-
-    With test set reservation:
-    >>> cv = GroupTimeSeriesSplit(k_folds=2, test_interval='5d', val_interval='5d')
-    >>> results = cv.split(X, y, groups, timestamps)
-    >>> for group_name, group_result in results.items():
-    >>>     if group_result.train_test_split:
-    >>>         # Use full train-test split
-    >>>         train_idx = group_result.train_test_split.train_idx
-    >>>         test_idx = group_result.train_test_split.test_idx
-    >>>         model.fit(X.iloc[train_idx], y.iloc[train_idx])
-    >>>         score = model.score(X.iloc[test_idx], y.iloc[test_idx])
     """
 
     def __init__(
@@ -58,7 +45,8 @@ class GroupTimeSeriesSplit:
         val_interval: str = "7d",
         train_interval: Optional[str] = None,
         window: Literal["expanding", "rolling"] = "expanding",
-        min_train_samples: int = 1
+        min_train_samples: int = 1,
+        padding: Optional[str] = None
     ) -> None:
         """
         Initialize the time-series cross-validation splitter.
@@ -97,6 +85,11 @@ class GroupTimeSeriesSplit:
             Minimum number of training samples required for a valid split.
             Splits with fewer training samples will be skipped.
 
+        padding : str, optional
+            Time interval for padding between validation folds. This creates gaps
+            between consecutive validation periods. Supported units same as val_interval.
+            Useful for creating independent validation sets with temporal separation.
+
         Raises
         ------
         ValueError
@@ -120,6 +113,12 @@ class GroupTimeSeriesSplit:
         else:
             self._test_offset = None
 
+        # Parse padding interval if provided
+        if padding:
+            self._padding = self._parse_interval(padding)
+        else:
+            self._padding = None
+
         # Validate parameters
         if k_folds < 0:
             raise ValueError("k_folds must be a non-negative integer")
@@ -127,7 +126,7 @@ class GroupTimeSeriesSplit:
         if window == "rolling" and train_interval is None:
             raise ValueError("train_interval must be specified for rolling window")
 
-    def _parse_interval(self, s: str) -> Union[pd.Timedelta]:
+    def _parse_interval(self, s: str) -> pd.Timedelta:
         """Parse time interval string into pandas offset object."""
         n, unit = int(s[:-1]), s[-1]
         if unit == 'm': return pd.Timedelta(minutes=n)
@@ -151,6 +150,10 @@ class GroupTimeSeriesSplit:
             If the time range is insufficient for the requested splits
         """
         total_needed = self._offset * self._k_folds
+
+        # Add padding between folds if specified
+        if self._padding and self._k_folds > 1:
+            total_needed += self._padding * (self._k_folds - 1)
 
         if self._test_offset:
             total_needed += self._test_offset
@@ -184,7 +187,14 @@ class GroupTimeSeriesSplit:
         """
         timestamps = timestamps.sort_values().reset_index(drop=True)
         t_end = timestamps.iloc[-1]
-        return t_end - self._offset * steps
+
+        # Calculate total offset including padding
+        if self._padding:
+            total_offset = steps * self._offset + (steps - 1) * self._padding
+        else:
+            total_offset = steps * self._offset
+
+        return t_end - total_offset
 
     def _get_fold_indices(
         self,
@@ -195,7 +205,12 @@ class GroupTimeSeriesSplit:
     ) -> Generator[SplitIndices, None, None]:
         """Generate indices for a single group's folds."""
         for k in range(steps):
-            sv = start + k * self._offset
+            # Calculate validation start time with padding between folds
+            if self._padding:
+                sv = start + k * (self._offset + self._padding)
+            else:
+                sv = start + k * self._offset
+
             ev = sv + self._offset
 
             if self._window == "expanding":
@@ -231,7 +246,6 @@ class GroupTimeSeriesSplit:
                 test_indices=None,
                 group=group_name
             )
-
 
     def split(
         self,
@@ -305,9 +319,12 @@ class GroupTimeSeriesSplit:
 
             # Generate validation folds
             if self._k_folds > 0 and len(train_val_df) > 0:
-                # Calculate start point for validation folds
-                # We need to ensure we have enough data for all folds
-                total_val_range = self._offset * self._k_folds
+                # Calculate start point for validation folds including padding
+                if self._padding:
+                    total_val_range = self._k_folds * self._offset + (self._k_folds - 1) * self._padding
+                else:
+                    total_val_range = self._k_folds * self._offset
+
                 start_val = train_val_df['ts'].iloc[-1] - total_val_range
 
                 # Generate folds
@@ -382,6 +399,7 @@ class GroupTimeSeriesSplit:
             significant_color = '#FFC107'
             legend_bg = 'rgba(30, 30, 30, 0.9)'
             legend_border = '#FFC107'
+            padding_color = 'rgba(200, 200, 200, 0.3)'  # New color for padding areas
         else:
             bg_color = 'white'
             text_color = 'black'
@@ -398,6 +416,7 @@ class GroupTimeSeriesSplit:
             significant_color = '#FF8F00'
             legend_bg = 'rgba(240, 240, 240, 0.9)'
             legend_border = '#FF8F00'
+            padding_color = 'rgba(100, 100, 100, 0.2)'  # New color for padding areas
 
         # Convert timestamps to Series if it's a DatetimeIndex
         if isinstance(timestamps, pd.DatetimeIndex):
@@ -471,7 +490,7 @@ class GroupTimeSeriesSplit:
                 y=group_y,
                 mode='lines',
                 name=group,
-                line=dict(color=line_color, width=2),  # Более толстая линия
+                line=dict(color=line_color, width=2),
                 marker=dict(size=4),
                 visible=(group == group_name),
                 hovertemplate=(
@@ -504,14 +523,14 @@ class GroupTimeSeriesSplit:
                 test_start = test_timestamps.min()
                 test_end = test_timestamps.max() + min_interval
 
-                # Add test rectangle with более контрастной заливкой
+                # Add test rectangle
                 fig.add_trace(go.Scatter(
                     x=[test_start, test_start, test_end, test_end, test_start],
                     y=[group_y_min, group_y_max, group_y_max, group_y_min, group_y_min],
                     fill="toself",
                     fillcolor=test_color,
-                    opacity=0.4,  # Увеличили прозрачность
-                    line=dict(color=test_color, width=2),  # Более толстая граница
+                    opacity=0.4,
+                    line=dict(color=test_color, width=2),
                     mode="lines",
                     name="Test",
                     legendgroup="test",
@@ -540,7 +559,35 @@ class GroupTimeSeriesSplit:
                         val_start = val_timestamps.min()
                         val_end = val_timestamps.max() + min_interval
 
-                        # Add training rectangl
+                        # Add padding visualization if padding is used
+                        if self._padding and i > 0:
+                            # Calculate padding area between current and previous fold
+                            prev_split = group_result.validation_splits[i-1]
+                            prev_val_idx_local = [global_to_local_idx[group][idx] for idx in prev_split.validation_indices if idx in global_to_local_idx[group]]
+                            prev_val_timestamps = group_timestamps.iloc[prev_val_idx_local]
+                            prev_val_end = prev_val_timestamps.max() + min_interval
+
+                            padding_start = prev_val_end
+                            padding_end = val_start
+
+                            # Only add padding visualization if there's a significant gap
+                            if padding_end > padding_start:
+                                fig.add_trace(go.Scatter(
+                                    x=[padding_start, padding_start, padding_end, padding_end, padding_start],
+                                    y=[fold_y_min, fold_y_max, fold_y_max, fold_y_min, fold_y_min],
+                                    fill="toself",
+                                    fillcolor=padding_color,
+                                    opacity=0.3,
+                                    line=dict(color=padding_color, width=1, dash='dot'),
+                                    mode="lines",
+                                    name="Padding",
+                                    legendgroup="padding",
+                                    showlegend=(group == group_name and i == 1),  # Show only once per group
+                                    hoverinfo="skip",
+                                    visible=(group == group_name)
+                                ))
+
+                        # Add training rectangle
                         if split.train_indices:
                             train_idx_local = [global_to_local_idx[group][idx] for idx in split.train_indices if idx in global_to_local_idx[group]]
                             train_timestamps = group_timestamps.iloc[train_idx_local]
@@ -620,7 +667,7 @@ class GroupTimeSeriesSplit:
                 visibility[i] = True
 
             # Update legend visibility for all legend groups
-            legend_visibility = {'train': False, 'validation': False, 'test': False}
+            legend_visibility = {'train': False, 'validation': False, 'test': False, 'padding': False}
             for i in range(start_idx, min(next_group_idx, len(fig.data))):
                 trace = fig.data[i]
                 if hasattr(trace, 'legendgroup'):
@@ -633,6 +680,9 @@ class GroupTimeSeriesSplit:
                     elif trace.legendgroup == 'test' and not legend_visibility['test']:
                         trace.showlegend = True
                         legend_visibility['test'] = True
+                    elif trace.legendgroup == 'padding' and not legend_visibility['padding']:
+                        trace.showlegend = True
+                        legend_visibility['padding'] = True
 
             # Create button for this group
             dropdown_buttons.append(
@@ -658,7 +708,8 @@ class GroupTimeSeriesSplit:
 
         # Set title
         if title is None:
-            title = f"<b>Time Series Cross-Validation Split</b><br><span style='font-size:14px'>Group: {group_name}</span>"
+            padding_info = f" (padding: {self._padding})" if self._padding else ""
+            title = f"<b>Time Series Cross-Validation Split{padding_info}</b><br><span style='font-size:14px'>Group: {group_name}</span>"
 
         # Calculate initial ranges
         initial_timestamps, initial_y = group_data[group_name]
