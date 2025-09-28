@@ -57,10 +57,10 @@ def train_val_test_split(
     >>> results = train_val_test_split(data, [60, 20, 20])
     >>> for group_name, result in results.items():
     >>>     print(f"Group: {group_name}")
-    >>>     print(f"Train indices: {result.train_test_split.train_idx}")
-    >>>     print(f"Test indices: {result.train_test_split.test_idx}")
+    >>>     print(f"Train indices: {result.train_test_split.train_indices}")
+    >>>     print(f"Test indices: {result.train_test_split.test_indices}")
     >>>     for val_split in result.validation_splits:
-    >>>         print(f"Validation indices: {val_split.val_idx}")
+    >>>         print(f"Validation indices: {val_split.validation_indices}")
 
     Usage with groups and timestamps:
 
@@ -74,9 +74,9 @@ def train_val_test_split(
     >>> results = train_val_test_split(data, [50, 25, 25], groups, timestamps)
     >>> for group_name, result in results.items():
     >>>     print(f"Group {group_name}:")
-    >>>     print(f"  Train size: {len(result.train_test_split.train_idx)}")
-    >>>     print(f"  Val size: {len(result.validation_splits[0].val_idx)}")
-    >>>     print(f"  Test size: {len(result.train_test_split.test_idx)}")
+    >>>     print(f"  Train size: {len(result.train_test_split.train_indices)}")
+    >>>     print(f"  Val size: {len(result.validation_splits[0].validation_indices)}")
+    >>>     print(f"  Test size: {len(result.train_test_split.test_indices)}")
 
     Usage with time series data:
 
@@ -101,9 +101,9 @@ def train_val_test_split(
     ... )
     >>> # Train model on group A data
     >>> group_a_result = results['A']
-    >>> X_train = data.loc[group_a_result.train_test_split.train_idx]
-    >>> X_val = data.loc[group_a_result.validation_splits[0].val_idx]
-    >>> X_test = data.loc[group_a_result.train_test_split.test_idx]
+    >>> X_train = data.loc[group_a_result.train_test_split.train_indices]
+    >>> X_val = data.loc[group_a_result.validation_splits[0].validation_indices]
+    >>> X_test = data.loc[group_a_result.train_test_split.test_indices]
 
     Notes
     ----------
@@ -154,9 +154,9 @@ def train_val_test_split(
 
         # Create SplitResult for the group
         train_val_test_split = SplitIndices(
-            train_idx=trainable_idx,
-            val_idx=validatable_idx,
-            test_idx=testable_idx,
+            train_indices=trainable_idx,
+            validation_indices=validatable_idx,
+            test_indices=testable_idx,
             group=group_name
         )
 
