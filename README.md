@@ -17,15 +17,11 @@ autofin
   - [🎯 Шум и аномалии (винсоризация)](#-шум-и-аномалии-винсоризация)
   - [📊 Отбор признаков](#-отбор-признаков)
   - [⚡ Распределение доходностей](#-распределение-доходностей)
-  - [🚀 Обучение моделей](#-обучение-моделей)
-  - [🚀 Оптимизация торговой стратегии](#-оптимизация-торговой-стратегии)
+  - [⚙️ Обучение моделей](#️-обучение-моделей)
+  - [⚙️ Оптимизация торговой стратегии](#️-оптимизация-торговой-стратегии)
   - [🚀 Бэктестирование](#-бэктестирование)
-  - [📊 Результаты торговых стратегий](#-результаты-торговых-стратегий)
-      - [Strategy performance:](#strategy-performance)
-      - [Strategy performance:](#strategy-performance-1)
-      - [Strategy performance:](#strategy-performance-2)
-      - [Strategy performance:](#strategy-performance-3)
-      - [Strategy performance:](#strategy-performance-4)
+    - [⚙️ Условия тестирования](#️-условия-тестирования)
+    - [📊 Результаты торговых стратегий](#-результаты-торговых-стратегий)
 - [🚀 Быстрый старт](#-быстрый-старт)
   - [Установка](#установка)
   - [Минимальный рабочий пример](#минимальный-рабочий-пример)
@@ -99,11 +95,11 @@ autofin
 
 ![Распределение доходностей](docs/img/returns_dist.png)
 
-### 🚀 Обучение моделей
+### ⚙️ Обучение моделей
 
 logloss + auc
 
-### 🚀 Оптимизация торговой стратегии
+### ⚙️ Оптимизация торговой стратегии
 
 ...
 
@@ -111,33 +107,69 @@ logloss + auc
 
 <div align="center">
 
-### 📊 Результаты торговых стратегий
+#### ⚙️ Условия тестирования
 
 <table>
-  <!-- Первая строка с двумя графиками -->
   <tr>
-    <td align="center" width="50%">
+    <td align="center" width="33%">
+      <strong>📊 Настройки тестирования</strong><br>
+      <table>
+        <tr><td>Комиссия за сделку</td><td>⚠️ 0.02%</td></tr>
+        <tr><td>Проскальзывание</td><td>⚠️ 0.01%</td></tr>
+        <tr><td>Период</td><td>⚠️ 84 дня</td></tr>
+        <tr><td>Депозит</td><td>⚠️ $1,000</td></tr>
+      </table>
+    </td>
+    <td align="center" width="33%">
+      <strong>🎯 Параметры стратегии</strong><br>
+      <table>
+        <tr><td>Регулирование магнитуды входов</td><td>❌</td></tr>
+        <tr><td>Переворот позиции</td><td>✅</td></tr>
+        <tr><td>Базовый порог</td><td>✅</td></tr>
+        <tr><td>Дельта на вход в лонг</td><td>✅</td></tr>
+        <tr><td>Эпсилон на выход из лонга</td><td>✅</td></tr>
+        <tr><td>Дельта на вход в шорт</td><td>✅</td></tr>
+        <tr><td>Эпсилон на выход из шорта</td><td>✅</td></tr>
+      </table>
+    </td>
+    <td align="center" width="33%">
+      <strong>🛡️ Управление рисками</strong><br>
+      <table>
+        <tr><td>Стоп-лосс</td><td>✅</td></tr>
+        <tr><td>Тейк-профит</td><td>❌</td></tr>
+        <tr><td>Трейлинг-стоп</td><td>✅</td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<br>
+
+#### 📊 Результаты торговых стратегий
+
+<table>
+  <tr>
+    <td align="center" width="50%" style="vertical-align: top;">
       <strong>BNB/USDT</strong>
     </td>
-    <td align="center" width="50%">
+    <td align="center" width="50%" style="vertical-align: top;">
       <strong>LINK/USDT</strong>
     </td>
   </tr>
   <tr>
-    <td align="center">
+    <td align="center" style="vertical-align: top;">
       <img src="docs/img/BNB_backtesting.png" alt="BNB Backtesting Results" width="95%">
     </td>
-    <td align="center">
+    <td align="center" style="vertical-align: top;">
       <img src="docs/img/LINK_backtesting.png" alt="LINK Backtesting Results" width="95%">
     </td>
   </tr>
   <tr>
-    <td align="center">
+    <td align="center" style="vertical-align: top;">
       <details>
         <summary><em>📈 Показать метрики BNB</em></summary>
         <pre>
 
-##### Strategy performance:
 End Value                        $1,640 ✅
 Total Return                    +64.05% ✅
 B&H Return                         +49.41%
@@ -150,18 +182,17 @@ Best Trade                          +2.89%
 Worst Trade                         -1.55%
 Avg Winning Trade                +0.45% ⚠️
 Avg Losing Trade                 -0.48% ⚠️
-Profit Factor                         1.54
-Expectancy                           $1.26
+Profit Factor                      1.54 ✅
+Expectancy                        $1.26 ✅
 Sharpe Ratio                       6.55 ✅
         </pre>
       </details>
     </td>
-    <td align="center">
+    <td align="center" style="vertical-align: top;">
       <details>
         <summary><em>📈 Показать метрики LINK</em></summary>
         <pre>
 
-##### Strategy performance:
 End Value                        $2,539 ✅
 Total Return                   +153.87% ✅
 B&H Return                        +101.85%
@@ -174,38 +205,36 @@ Best Trade                          +8.86%
 Worst Trade                         -1.54%
 Avg Winning Trade                +0.59% ✅
 Avg Losing Trade                 -0.41% ✅
-Profit Factor                         1.54
-Expectancy                            $1.8
+Profit Factor                      1.54 ✅
+Expectancy                         $1.8 ✅
 Sharpe Ratio                       8.98 ✅
         </pre>
       </details>
     </td>
   </tr>
 
-  <!-- Вторая строка с двумя графиками -->
   <tr>
-    <td align="center" width="50%">
+    <td align="center" width="50%" style="vertical-align: top;">
       <strong>ETH/USDT</strong>
     </td>
-    <td align="center" width="50%">
+    <td align="center" width="50%" style="vertical-align: top;">
       <strong>BTC/USDT</strong>
     </td>
   </tr>
   <tr>
-    <td align="center">
+    <td align="center" style="vertical-align: top;">
       <img src="docs/img/ETH_backtesting.png" alt="ETH Backtesting Results" width="95%">
     </td>
-    <td align="center">
+    <td align="center" style="vertical-align: top;">
       <img src="docs/img/BTC_backtesting.png" alt="BTC Backtesting Results" width="95%">
     </td>
   </tr>
   <tr>
-    <td align="center">
+    <td align="center" style="vertical-align: top;">
       <details>
         <summary><em>📈 Показать метрики ETH</em></summary>
         <pre>
 
-##### Strategy performance:
 End Value                          $905 ❌
 Total Return                      -9.5% ❌
 B&H Return                         +40.38%
@@ -224,12 +253,11 @@ Sharpe Ratio                      -1.64 ❌
         </pre>
       </details>
     </td>
-    <td align="center">
+    <td align="center" style="vertical-align: top;">
       <details>
         <summary><em>📈 Показать метрики BTC</em></summary>
         <pre>
 
-##### Strategy performance:
 End Value                        $1,012 ⚠️
 Total Return                      +1.2% ⚠️
 B&H Return                         +50.87%
@@ -250,24 +278,22 @@ Sharpe Ratio                       0.33 ❌
     </td>
   </tr>
 
-  <!-- Третья строка с одним графиком по центру -->
   <tr>
-    <td align="center" colspan="2">
+    <td align="center" colspan="2" style="vertical-align: top;">
       <strong>OP/USDT</strong>
     </td>
   </tr>
   <tr>
-    <td align="center" colspan="2">
+    <td align="center" colspan="2" style="vertical-align: top;">
       <img src="docs/img/OP_backtesting.png" alt="OP Backtesting Results" width="45%">
     </td>
   </tr>
   <tr>
-    <td align="center" colspan="2">
+    <td align="center" colspan="2" style="vertical-align: top;">
       <details>
         <summary><em>📈 Показать метрики OP</em></summary>
         <pre>
 
-##### Strategy performance:
 End Value                        $2,459 ⚠️
 Total Return                     145.9% ⚠️
 B&H Return                          179.6%
